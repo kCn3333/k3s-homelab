@@ -6,3 +6,4 @@ resources:
   - namespace.yaml
   - nginx-deploy.yaml
   - imagerepository.yaml
+  - imagepolicy.yaml
