@@ -4,3 +4,4 @@ resources:
   - nginx
   - sealed-secrets
   - longhorn
+  - traefik-dashboard
