@@ -7,4 +7,5 @@ resources:
   - ingressroute.yaml 
   - middleware.yaml
   - certificate.yaml 
+  - traefik-auth-sealed.yaml
   - helmchartconfig-traefik.yaml
