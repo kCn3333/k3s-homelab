@@ -7,3 +7,4 @@ resources:
   - ingressroute.yaml 
   - middleware.yaml
   - certificate.yaml 
+  - helmchartconfig-traefik.yaml
