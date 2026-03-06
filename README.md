@@ -8,7 +8,7 @@
 
 This repository is the **single source of truth** for a self-hosted Kubernetes cluster managed entirely through GitOps principles. Every change to the cluster passes through Git — no manual `kubectl apply`, no configuration drift.
 
-The cluster is intentionally designed to mirror production environments: HA control plane, TLS everywhere, automated certificate management, network security policies, and a full GitOps pipeline with continuous image delivery.
+The cluster is intentionally designed to mirror production environments: HA control plane, TLS everywhere, automated certificate management, distributed storage, CNI with eBPF, and a full GitOps pipeline with continuous image delivery.
 
 ---
 
@@ -19,9 +19,12 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | Hardware | 3× HP T630 Thin Client |
 | OS | Ubuntu 24.04 LTS |
 | Kubernetes | k3s v1.34 (embedded etcd, HA) |
+| CNI | Cilium v1.19.1 (eBPF) |
+| Storage | Longhorn v1.11 (distributed block storage) |
 | Ingress | Traefik v3 |
 | Load Balancer | HAProxy (bare-metal) |
 | Certificate Management | cert-manager + Let's Encrypt (DNS-01) |
+| Secrets Management | Sealed Secrets v0.36 |
 | GitOps | Flux v2 |
 | DNS | Cloudflare (public) + PiHole (local) |
 | Firewall | UFW (managed via Ansible) |
@@ -57,6 +60,8 @@ Local Network           │                                  │
     │  control-plane   │◄────►  control-plane    │◄────►  control-plane   │
     │  etcd            │     │  etcd              │     │  etcd             │
     └──────────────────┘     └───────────────────┘     └───────────────────┘
+                    Cilium eBPF CNI — pod network & policy
+                    Longhorn — distributed storage with replicas
 ```
 
 ---
@@ -94,6 +99,10 @@ k3s-homelab/
 ├── apps/
 │   └── base/                      # Application manifests
 │       ├── kustomization.yaml     # App registry
+│       ├── cilium/                # CNI — managed by Flux
+│       ├── longhorn/              # Distributed storage
+│       ├── sealed-secrets/        # Secrets management
+│       ├── traefik-dashboard/     # Traefik UI with BasicAuth
 │       └── <app-name>/
 │           ├── namespace.yaml
 │           ├── deployment.yaml    # includes Flux image policy marker
@@ -105,6 +114,7 @@ k3s-homelab/
 └── clusters/
     └── k3s-homelab/
         ├── apps.yaml              # Flux Kustomization → ./apps/base
+        ├── helmchartconfig-traefik.yaml
         ├── image-update-automation.yaml
         └── flux-system/           # Flux self-management (auto-generated)
             ├── gotk-components.yaml
@@ -121,6 +131,20 @@ k3s-homelab/
 - Embedded etcd with automatic leader election
 - HAProxy with round-robin load balancing across all API servers
 
+**CNI — Cilium (eBPF)**
+- Replaces both flannel and kube-proxy entirely
+- eBPF-based networking — higher performance, lower overhead
+- NetworkPolicy support out of the box
+- Hubble observability (ready to enable)
+- Managed by Flux as HelmRelease
+
+**Distributed Storage — Longhorn**
+- Block storage replicated across all 3 nodes
+- ReadWriteMany (RWX) via built-in NFS share manager
+- Dynamic provisioning — no manual PV creation
+- Default StorageClass for the cluster
+- Managed by Flux as HelmRelease
+
 **TLS Everywhere**
 - Wildcard certificate `*.cluster.kcn333.com` via cert-manager
 - Let's Encrypt DNS-01 challenge through Cloudflare API (no public exposure needed)
@@ -133,14 +157,21 @@ k3s-homelab/
 - Automated image tag updates committed back to repo by Flux bot
 - Conventional Commits enforced for clean history
 
+**Secrets Management — Sealed Secrets**
+- Secrets encrypted with cluster public key — safe to store in Git
+- Only the cluster can decrypt — asymmetric encryption
+- `cloudflare-token`, `traefik-dashboard-auth` stored as SealedSecrets in repo
+
 **Security**
 - UFW firewall on all nodes — only HAProxy and intra-cluster traffic allowed
 - Direct node access blocked — all traffic routes through HAProxy
 - HAProxy bound to dedicated IP alias, isolated from other services
 - etcd snapshots automated daily + offsite backup via rsync to separate host
+- Traefik dashboard protected with BasicAuth (htpasswd + SealedSecret)
 
 **Infrastructure as Code**
 - UFW rules managed via Ansible playbooks
+- Graceful node shutdown via Ansible playbook
 - All cluster configuration in Git — no manual state
 - Cluster bootstrapped from k3s install flags — reproducible
 
@@ -162,6 +193,8 @@ Offsite backup script: pulls latest snapshot from master via SSH, stores in date
 Infrastructure configuration is managed via Ansible with Semaphore UI:
 
 - **UFW playbook** — configures firewall rules on all k3s nodes
+- **Longhorn prepare playbook** — installs open-iscsi, nfs-common on all nodes
+- **Graceful shutdown playbook** — safely drains and powers off all nodes
 - **Maintenance playbooks** — rolling updates, node management
 
 Inventory covers all three k3s nodes. Playbooks are idempotent — safe to run repeatedly.
@@ -170,16 +203,18 @@ Inventory covers all three k3s nodes. Playbooks are idempotent — safe to run r
 
 ## Roadmap
 
+- [ ] **Monitoring — Prometheus + Grafana** ← next
 - [ ] CI/CD pipeline — GitHub Actions building and pushing application images
 - [ ] Own microservices application (Spring Boot) deployed via this GitOps workflow
 - [ ] Helm charts for applications
 - [ ] Progressive delivery — staging / production branch strategy
 - [ ] HashiCorp Vault — secrets management
 - [ ] External Secrets Operator
-- [ ] Sealed Secrets for secrets in Git
+- [x] Sealed Secrets for secrets in Git
 - [ ] external-dns — automatic DNS records from Ingress resources
-- [ ] Traefik dashboard with BasicAuth
-- [ ] NetworkPolicy — pod-level network isolation
+- [x] Traefik dashboard with BasicAuth
+- [ ] NetworkPolicy — pod-level network isolation (Cilium ready)
+- [ ] Hubble — Cilium network observability UI
 - [ ] RBAC — fine-grained access control
 
 ---
