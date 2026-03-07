@@ -37,6 +37,7 @@ spec:
       serviceMonitor:
         https: true
         insecureSkipVerify: true
+        metricRelabelings: []
     grafana:
       enabled: true
       admin:
