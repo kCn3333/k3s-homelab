@@ -37,3 +37,5 @@ spec:
       enabled: true
     externalIPs:
       enabled: true
+    bpf:
+      hostLegacyRouting: true
