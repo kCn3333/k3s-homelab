@@ -6,3 +6,4 @@ resources:
   - longhorn
   - traefik-dashboard
   - cilium
+  - monitoring
