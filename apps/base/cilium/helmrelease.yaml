@@ -30,3 +30,9 @@ spec:
     k8sServicePort: 6443
     operator:
       replicas: 1
+    nodePort:
+      enabled: true
+    hostServices:
+      enabled: true
+    externalIPs:
+      enabled: true
