@@ -8,7 +8,7 @@
 
 This repository is the **single source of truth** for a self-hosted Kubernetes cluster managed entirely through GitOps principles. Every change to the cluster passes through Git — no manual `kubectl apply`, no configuration drift.
 
-The cluster is intentionally designed to mirror production environments: HA control plane, TLS everywhere, automated certificate management, distributed storage, CNI with eBPF, and a full GitOps pipeline with continuous image delivery.
+The cluster is intentionally designed to mirror production environments: HA control plane, TLS everywhere, automated certificate management, distributed storage, CNI with eBPF, full observability stack, and a complete GitOps pipeline with continuous image delivery.
 
 ---
 
@@ -26,6 +26,7 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | Certificate Management | cert-manager + Let's Encrypt (DNS-01) |
 | Secrets Management | Sealed Secrets v0.36 |
 | GitOps | Flux v2 |
+| Monitoring | kube-prometheus-stack v82 (Prometheus + Grafana + AlertManager) |
 | DNS | Cloudflare (public) + PiHole (local) |
 | Firewall | UFW (managed via Ansible) |
 
@@ -59,9 +60,11 @@ Local Network           │                                  │
     │  192.168.55.10   │     │  192.168.55.11     │     │  192.168.55.12    │
     │  control-plane   │◄────►  control-plane    │◄────►  control-plane   │
     │  etcd            │     │  etcd              │     │  etcd             │
+    │  node-exporter   │     │  node-exporter     │     │  node-exporter    │
     └──────────────────┘     └───────────────────┘     └───────────────────┘
                     Cilium eBPF CNI — pod network & policy
                     Longhorn — distributed storage with replicas
+                    Prometheus — scrapes all nodes via hostNetwork
 ```
 
 ---
@@ -101,6 +104,7 @@ k3s-homelab/
 │       ├── kustomization.yaml     # App registry
 │       ├── cilium/                # CNI — managed by Flux
 │       ├── longhorn/              # Distributed storage
+│       ├── monitoring/            # Prometheus + Grafana stack
 │       ├── sealed-secrets/        # Secrets management
 │       ├── traefik-dashboard/     # Traefik UI with BasicAuth
 │       └── <app-name>/
@@ -145,6 +149,14 @@ k3s-homelab/
 - Default StorageClass for the cluster
 - Managed by Flux as HelmRelease
 
+**Monitoring — kube-prometheus-stack**
+- Prometheus with 7-day retention on Longhorn PVC
+- Grafana at `grafana.cluster.kcn333.com` with TLS and SealedSecret credentials
+- node-exporter DaemonSet — CPU, RAM, disk, network per node
+- kube-state-metrics — Kubernetes object metrics
+- AlertManager — ready for alert configuration
+- Prometheus runs with `hostNetwork: true` for direct kubelet access on k3s
+
 **TLS Everywhere**
 - Wildcard certificate `*.cluster.kcn333.com` via cert-manager
 - Let's Encrypt DNS-01 challenge through Cloudflare API (no public exposure needed)
@@ -160,7 +172,7 @@ k3s-homelab/
 **Secrets Management — Sealed Secrets**
 - Secrets encrypted with cluster public key — safe to store in Git
 - Only the cluster can decrypt — asymmetric encryption
-- `cloudflare-token`, `traefik-dashboard-auth` stored as SealedSecrets in repo
+- `cloudflare-token`, `traefik-dashboard-auth`, `grafana-admin-secret` stored as SealedSecrets
 
 **Security**
 - UFW firewall on all nodes — only HAProxy and intra-cluster traffic allowed
@@ -168,6 +180,7 @@ k3s-homelab/
 - HAProxy bound to dedicated IP alias, isolated from other services
 - etcd snapshots automated daily + offsite backup via rsync to separate host
 - Traefik dashboard protected with BasicAuth (htpasswd + SealedSecret)
+- Grafana protected with credentials stored as SealedSecret
 
 **Infrastructure as Code**
 - UFW rules managed via Ansible playbooks
@@ -203,7 +216,7 @@ Inventory covers all three k3s nodes. Playbooks are idempotent — safe to run r
 
 ## Roadmap
 
-- [ ] **Monitoring — Prometheus + Grafana** ← next
+- [ ] **AlertManager** — configure alerts (node down, high CPU/RAM)
 - [ ] CI/CD pipeline — GitHub Actions building and pushing application images
 - [ ] Own microservices application (Spring Boot) deployed via this GitOps workflow
 - [ ] Helm charts for applications
