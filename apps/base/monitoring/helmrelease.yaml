@@ -59,6 +59,8 @@ spec:
 
     prometheus:
       prometheusSpec:
+        hostNetwork: true
+        hostPID: true
         kubeletService:
           enabled: true
         retention: 7d
