@@ -37,6 +37,7 @@ spec:
       serviceMonitor:
         https: true
         insecureSkipVerify: true
+        cAdvisor: true
         metricRelabelings: []
     grafana:
       enabled: true
@@ -58,6 +59,8 @@ spec:
 
     prometheus:
       prometheusSpec:
+        kubeletService:
+          enabled: true
         retention: 7d
         storageSpec:
           volumeClaimTemplate:
