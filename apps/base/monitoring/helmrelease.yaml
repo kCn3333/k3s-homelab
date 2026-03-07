@@ -24,6 +24,18 @@ spec:
       retries: 3
 
   values:
+    kubeControllerManager:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeEtcd:
+      enabled: false
+    kubeProxy:
+      enabled: false  # Cilium replaced kube-proxy
+    kubelet:
+      enabled: true
+      serviceMonitor:
+        metricRelabelings: []
     grafana:
       enabled: true
       admin:
