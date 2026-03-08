@@ -16,7 +16,11 @@ data:
     TAGS_MAP = {"critical": "rotating_light", "warning": "warning", "info": "information_source"}
 
     def send_ntfy(title, message, priority, tags):
-        req = urllib.request.Request(NTFY_URL, data=message.encode())
+        req = urllib.request.Request(
+            NTFY_URL,
+            data=message.encode(),
+             method="POST"
+        )
 
         credentials = base64.b64encode(f"{NTFY_USER}:{NTFY_PASS}".encode()).decode()
 
