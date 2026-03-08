@@ -30,7 +30,7 @@ data:
         req.add_header("Tags", tags)
 
         req.add_header("Content-Type", "text/plain")
-        req.add_header("User-Agent", "alertmanager-webhook")
+        req.add_header("User-Agent", "Mozilla/5.0")
 
         urllib.request.urlopen(req)
 
