@@ -9,3 +9,5 @@ resources:
   - grafana-secret-sealed.yaml
   - certificate.yaml
   - alertmanager-config-sealed.yaml
+  - alertmanager-ntfy-sealed.yaml
+  - ntfy-webhook.yaml
