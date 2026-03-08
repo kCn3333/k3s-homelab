@@ -17,11 +17,17 @@ data:
 
     def send_ntfy(title, message, priority, tags):
         req = urllib.request.Request(NTFY_URL, data=message.encode())
+
         credentials = base64.b64encode(f"{NTFY_USER}:{NTFY_PASS}".encode()).decode()
+
         req.add_header("Authorization", f"Basic {credentials}")
         req.add_header("Title", title)
         req.add_header("Priority", priority)
         req.add_header("Tags", tags)
+
+        req.add_header("Content-Type", "text/plain")
+        req.add_header("User-Agent", "alertmanager-webhook")
+
         urllib.request.urlopen(req)
 
     class Handler(BaseHTTPRequestHandler):
