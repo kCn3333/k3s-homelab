@@ -5,7 +5,7 @@ metadata:
   namespace: monitoring
 data:
   app.py: |
-    import json, os, urllib.request, urllib.parse
+    import json, os, urllib.request, base64
     from http.server import HTTPServer, BaseHTTPRequestHandler
 
     NTFY_URL = os.environ["NTFY_URL"]
@@ -14,6 +14,15 @@ data:
 
     PRIORITY_MAP = {"critical": "urgent", "warning": "high", "info": "default"}
     TAGS_MAP = {"critical": "rotating_light", "warning": "warning", "info": "information_source"}
+
+    def send_ntfy(title, message, priority, tags):
+        req = urllib.request.Request(NTFY_URL, data=message.encode())
+        credentials = base64.b64encode(f"{NTFY_USER}:{NTFY_PASS}".encode()).decode()
+        req.add_header("Authorization", f"Basic {credentials}")
+        req.add_header("Title", title)
+        req.add_header("Priority", priority)
+        req.add_header("Tags", tags)
+        urllib.request.urlopen(req)
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
@@ -41,17 +50,11 @@ data:
                 if namespace:
                     message += f"\n\nNamespace: {namespace}"
 
-                req = urllib.request.Request(NTFY_URL, data=message.encode())
-                credentials = urllib.parse.quote(NTFY_USER) + ":" + urllib.parse.quote(NTFY_PASS)
-                import base64
-                req.add_header("Authorization", "Basic " + base64.b64encode(credentials.encode()).decode())
-                req.add_header("Title", title)
-                req.add_header("Priority", priority)
-                req.add_header("Tags", tags)
                 try:
-                    urllib.request.urlopen(req)
+                    send_ntfy(title, message, priority, tags)
+                    print(f"Sent: {title}")
                 except Exception as e:
-                    print(f"Error sending to ntfy: {e}")
+                    print(f"Error: {e}")
 
             self.send_response(200)
             self.end_headers()
@@ -59,6 +62,7 @@ data:
         def log_message(self, *args):
             pass
 
+    print("ntfy-webhook starting on :8080")
     HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
 ---
 apiVersion: apps/v1
