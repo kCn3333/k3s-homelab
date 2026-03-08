@@ -6,4 +6,4 @@ metadata:
 spec:
   backupTargetURL: s3://longhorn-backup@garage/
   credentialSecret: longhorn-s3-secret
-  pollInterval: "300"
+  pollInterval: "300s"
