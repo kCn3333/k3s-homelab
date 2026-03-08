@@ -8,3 +8,4 @@ resources:
   - helmrepository.yaml
   - grafana-secret-sealed.yaml
   - certificate.yaml
+  - alertmanager-config-sealed.yaml

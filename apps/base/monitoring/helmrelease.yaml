@@ -56,6 +56,11 @@ spec:
           - secretName: grafana-tls
             hosts:
               - grafana.cluster.kcn333.com
+    
+    alertmanager:
+      alertmanagerSpec:
+        useExistingSecret: true
+        configSecret: alertmanager-kube-prometheus-stack-alertmanager
 
     prometheus:
       prometheusSpec:
