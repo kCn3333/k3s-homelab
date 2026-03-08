@@ -1,13 +1,9 @@
-apiVersion: longhorn.io/v1beta2
-kind: Setting
+vapiVersion: longhorn.io/v1beta2
+kind: BackupTarget
 metadata:
-  name: backup-target
+  name: default
   namespace: longhorn-system
-value: "s3://longhorn-backup@garage/"
----
-apiVersion: longhorn.io/v1beta2
-kind: Setting
-metadata:
-  name: backup-target-credential-secret
-  namespace: longhorn-system
-value: "longhorn-s3-secret"
+spec:
+  backupTargetURL: s3://longhorn-backup@garage/
+  credentialSecret: longhorn-s3-secret
+  pollInterval: 300
