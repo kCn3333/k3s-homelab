@@ -21,6 +21,10 @@ spec:
       retries: 3
   values:
     deploymentMode: SingleBinary
+    chunksCache:
+      enabled: false
+    resultsCache:
+      enabled: false
     loki:
       auth_enabled: false
       commonConfig:
