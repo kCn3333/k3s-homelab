@@ -3,13 +3,11 @@ kind: Setting
 metadata:
   name: backup-target
   namespace: longhorn-system
-spec:
-  value: "s3://longhorn-backup@garage/"
+value: "s3://longhorn-backup@garage/"
 ---
 apiVersion: longhorn.io/v1beta2
 kind: Setting
 metadata:
   name: backup-target-credential-secret
   namespace: longhorn-system
-spec:
-  value: "longhorn-s3-secret"
+value: "longhorn-s3-secret"
