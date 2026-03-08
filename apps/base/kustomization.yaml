@@ -7,3 +7,4 @@ resources:
   - traefik-dashboard
   - cilium
   - monitoring
+  - loki

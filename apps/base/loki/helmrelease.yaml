@@ -1,0 +1,82 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: loki
+  namespace: loki
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: loki
+      version: "6.53.0"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+      interval: 12h
+  install:
+    createNamespace: true
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    deploymentMode: SingleBinary
+    loki:
+      auth_enabled: false
+      commonConfig:
+        replication_factor: 1
+      storage:
+        type: s3
+        s3:
+          endpoint: http://192.168.0.46:3900
+          region: garage
+          bucketnames: loki-logs
+          secretAccessKey: ""
+          accessKeyId: ""
+          s3ForcePathStyle: true
+          insecure: true
+      storage_config:
+        aws:
+          endpoint: http://192.168.0.46:3900
+          region: garage
+          bucketnames: loki-logs
+          s3forcepathstyle: true
+          insecure: true
+      schemaConfig:
+        configs:
+          - from: "2024-01-01"
+            store: tsdb
+            object_store: s3
+            schema: v13
+            index:
+              prefix: loki_index_
+              period: 24h
+      limits_config:
+        retention_period: 7d
+      compactor:
+        retention_enabled: true
+    singleBinary:
+      replicas: 1
+      extraEnv:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: loki-s3-secret
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: loki-s3-secret
+              key: AWS_SECRET_ACCESS_KEY
+    read:
+      replicas: 0
+    write:
+      replicas: 0
+    backend:
+      replicas: 0
+    gateway:
+      enabled: false
+    test:
+      enabled: false
+    lokiCanary:
+      enabled: false
