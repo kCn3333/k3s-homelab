@@ -4,5 +4,6 @@ metadata:
   name: loki
 resources:
   - namespace.yaml
+  - helmrepository.yaml
   - helmrelease.yaml
   - loki-s3-secret-sealed.yaml
