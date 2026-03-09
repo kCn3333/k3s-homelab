@@ -40,12 +40,6 @@ spec:
     service:
       port: 443
       targetPort: 4443
-    readinessProbe:
-      enabled: true
-      httpGet:
-        path: /readyz
-        port: 4443
-        scheme: HTTPS
     livenessProbe:
       httpGet:
         port: 4443
