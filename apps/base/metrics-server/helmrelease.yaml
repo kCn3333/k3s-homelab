@@ -16,6 +16,13 @@ spec:
       interval: 12h
   values:
     replicas: 3
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: metrics-server
+            topologyKey: "kubernetes.io/hostname"
     deploymentStrategy:
       type: RollingUpdate
       rollingUpdate:
