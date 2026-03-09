@@ -1,0 +1,77 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: homelab-custom-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: homelab.nodes
+      interval: 1m
+      rules:
+        - alert: NodeHighCPU
+          expr: |
+            (1 - avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU on {{ $labels.instance }}"
+            description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }} (threshold 90%)"
+
+        - alert: NodeHighMemory
+          expr: |
+            (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory on {{ $labels.instance }}"
+            description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }} (threshold 85%)"
+
+        - alert: NodeDiskPressure
+          expr: |
+            (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk pressure on {{ $labels.instance }}"
+            description: "Disk usage is {{ $value | humanize }}% on {{ $labels.instance }} (threshold 85%)"
+
+    - name: homelab.pods
+      interval: 1m
+      rules:
+        - alert: PodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total[10m]) >= 5
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod crash looping: {{ $labels.pod }}"
+            description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} restarted {{ $value | humanize }} times in last 10 minutes"
+
+        - alert: PodNotReady
+          expr: |
+            kube_pod_status_ready{condition="true"} == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod not ready: {{ $labels.pod }}"
+            description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has been not ready for more than 10 minutes"
+
+    - name: homelab.longhorn
+      interval: 1m
+      rules:
+        - alert: LonghornVolumeUnhealthy
+          expr: |
+            longhorn_volume_robustness == 3
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Longhorn volume unhealthy: {{ $labels.volume }}"
+            description: "Longhorn volume {{ $labels.volume }} is in faulted state"
