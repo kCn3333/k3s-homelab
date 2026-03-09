@@ -20,12 +20,19 @@ spec:
       - --secure-port=4443
       - --kubelet-preferred-address-types=InternalIP
       - --kubelet-insecure-tls
-      - --metric-resolution=15s
+      - --metric-resolution=25s
     hostNetwork:
-      enabled: true
+      enabled: false
     containerPort: 4443
     livenessProbe:
       httpGet:
         port: 4443
+        path: /livez
+        scheme: HTTPS
     readinessProbe:
-      enabled: false
+      enabled: true
+      httpGet:
+        path: /readyz
+        port: 4443
+        scheme: HTTPS
+      initialDelaySeconds: 20
