@@ -27,7 +27,7 @@ spec:
       - --kubelet-insecure-tls
       - --metric-resolution=35s
     hostNetwork:
-      enabled: false
+      enabled: true
     containerPort: 4443
     livenessProbe:
       httpGet:
