@@ -28,7 +28,4 @@ spec:
       httpGet:
         port: 4443
     readinessProbe:
-      httpGet:
-        port: 4443
-      failureThreshold: 10
-      periodSeconds: 10
+      enabled: false
