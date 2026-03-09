@@ -30,13 +30,22 @@ spec:
     args:
       - --cert-dir=/tmp
       - --secure-port=4443
-      - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+      - --kubelet-preferred-address-types=InternalIP
       - --kubelet-insecure-tls
       - --kubelet-port=10250
-      - --metric-resolution=15s
+      - --metric-resolution=55s
     hostNetwork:
       enabled: true
     containerPort: 4443
+    service:
+      port: 443
+      targetPort: 4443
+    readinessProbe:
+      enabled: true
+      httpGet:
+        path: /readyz
+        port: 4443
+        scheme: HTTPS
     livenessProbe:
       httpGet:
         port: 4443
