@@ -34,7 +34,6 @@ spec:
       - --kubelet-insecure-tls
       - --kubelet-port=10250
       - --metric-resolution=15s
-      - --authentication-kubeconfig-extension-noverify
     hostNetwork:
       enabled: true
     containerPort: 4443
