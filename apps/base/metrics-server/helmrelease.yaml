@@ -15,12 +15,17 @@ spec:
         namespace: flux-system
       interval: 12h
   values:
+    replicas: 3
+    deploymentStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
     args:
       - --cert-dir=/tmp
       - --secure-port=4443
       - --kubelet-preferred-address-types=InternalIP
       - --kubelet-insecure-tls
-      - --metric-resolution=25s
+      - --metric-resolution=35s
     hostNetwork:
       enabled: false
     containerPort: 4443
