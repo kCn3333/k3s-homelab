@@ -15,25 +15,14 @@ spec:
         namespace: flux-system
       interval: 12h
   values:
-    replicas: 3
-    affinity:
-      podAntiAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: metrics-server
-            topologyKey: "kubernetes.io/hostname"
-    deploymentStrategy:
-      type: RollingUpdate
-      rollingUpdate:
-        maxUnavailable: 1
+    replicas: 1
     args:
       - --cert-dir=/tmp
       - --secure-port=4443
       - --kubelet-preferred-address-types=InternalIP
       - --kubelet-insecure-tls
       - --kubelet-port=10250
-      - --metric-resolution=55s
+      - --metric-resolution=15s
     hostNetwork:
       enabled: true
     containerPort: 4443
