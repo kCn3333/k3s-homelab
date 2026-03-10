@@ -56,11 +56,52 @@ spec:
           - secretName: grafana-tls
             hosts:
               - grafana.cluster.kcn333.com
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          cpu: 200m
+          memory: 512Mi
     
     alertmanager:
       alertmanagerSpec:
         useExistingSecret: true
         configSecret: alertmanager-kube-prometheus-stack-alertmanager
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+
+    prometheusOperator:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+
+    nodeExporter:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+
+    kube-state-metrics:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
 
     prometheus:
       prometheusSpec:
@@ -77,3 +118,10 @@ spec:
               resources:
                 requests:
                   storage: 10Gi
+        resources:
+          requests:
+            cpu: 200m
+            memory: 1024Mi
+          limits:
+            cpu: 1000m
+            memory: 2048Mi  
