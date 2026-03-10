@@ -66,6 +66,13 @@ spec:
         delete_request_store: s3
     singleBinary:
       replicas: 1
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          cpu: 200m
+          memory: 512Mi
       extraEnv:
         - name: AWS_ACCESS_KEY_ID
           valueFrom:
