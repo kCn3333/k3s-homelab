@@ -5,7 +5,6 @@ resources:
   - longhorn
   - sealed-secrets
   - monitoring
-  - traefik-dashboard
   - loki
   - promtail
   - metrics-server
