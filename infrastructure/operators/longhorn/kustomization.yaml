@@ -8,6 +8,3 @@ resources:
   - helmrelease.yaml
   - local-path-not-default.yaml 
   - storageclass-rwx.yaml
-  - backuptarget.yaml
-  - longhorn-s3-secret-sealed.yaml
-  - recurringjob.yaml
