@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: clients-api
-  namespace: clients-api
+  namespace: clients
 spec:
   selector:
     app: clients-api
