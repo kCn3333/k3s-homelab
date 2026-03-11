@@ -8,20 +8,21 @@
 
 This repository is the **single source of truth** for a self-hosted Kubernetes cluster managed entirely through GitOps principles. Every change to the cluster passes through Git — no manual `kubectl apply`, no configuration drift.
 
-The cluster is intentionally designed to mirror production environments: HA control plane, TLS everywhere, automated certificate management, distributed storage, CNI with eBPF, full observability stack with metrics and logs, and a complete GitOps pipeline with continuous image delivery.
+The cluster is intentionally designed to mirror production environments: HA control plane, TLS everywhere, automated certificate management, distributed storage, CNI with eBPF, full observability stack with metrics and logs, complete GitOps pipeline with continuous image delivery, and a PostgreSQL database managed by CloudNativePG.
 
 ---
 
 ## Infrastructure
 
 | Component | Technology |
-|-----------|-----------|
+|---|---|
 | Hardware | 3× HP T630 Thin Client |
 | OS | Ubuntu 24.04 LTS |
 | Kubernetes | k3s v1.34 (embedded etcd, HA) |
 | CNI | Cilium v1.19.1 (eBPF) |
 | Storage | Longhorn v1.11 (distributed block storage) |
 | Object Storage | Garage v2.2.0 (self-hosted S3, Debian host) |
+| Database | CloudNativePG (PostgreSQL 17) |
 | Ingress | Traefik v3 |
 | Load Balancer | HAProxy (bare-metal) |
 | Certificate Management | cert-manager + Let's Encrypt (DNS-01) |
@@ -82,16 +83,16 @@ Local Network           │                                  │
 ## GitOps Flow
 
 ```
-Developer pushes code
+Developer pushes git tag (v*)
         │
         ▼
-GitHub Actions builds Docker image
+GitHub Actions: test → build → push
         │
         ▼
-Image pushed to registry with semver tag
+DockerHub: semver tags (1.x.x, 1.x, sha-XXXX, latest)
         │
         ▼
-Flux ImagePolicy detects new tag
+Flux ImagePolicy detects new semver tag
         │
         ▼
 Flux commits updated tag to this repo
@@ -110,22 +111,49 @@ Rolling update deployed to cluster
 ```
 k3s-homelab/
 ├── apps/
-│   └── base/                      # Application manifests
-│       ├── kustomization.yaml     # App registry
-│       ├── cilium/                # CNI — managed by Flux
-│       ├── longhorn/              # Distributed storage + S3 backup
-│       ├── loki/                  # Log aggregation (Garage S3 backend)
-│       ├── monitoring/            # Prometheus + Grafana + AlertManager + ntfy
-│       ├── promtail/              # Log collection DaemonSet
-│       ├── sealed-secrets/        # Secrets management
-│       ├── traefik-dashboard/     # Traefik UI with BasicAuth
-│       └── nginx/                 # Example app with image automation
-└── clusters/
-    └── k3s-homelab/
-        ├── apps.yaml
-        ├── helmchartconfig-traefik.yaml
-        ├── image-update-automation.yaml
-        └── flux-system/
+│   └── base/                          # Application manifests
+│       ├── kustomization.yaml
+│       ├── clients-api/               # Spring Boot API + PostgreSQL
+│       │   ├── namespace.yaml
+│       │   ├── db-cluster.yaml        # CloudNativePG cluster
+│       │   ├── db-secret-sealed.yaml  # DB credentials (SealedSecret)
+│       │   ├── deployment.yaml        # Spring Boot, prod profile, 2 replicas
+│       │   ├── service.yaml           # Named port (required by ServiceMonitor)
+│       │   ├── ingress.yaml           # TLS ingress via Traefik
+│       │   ├── imagerepository.yaml   # Scans kcn333/clients-api every 1m
+│       │   ├── imagepolicy.yaml       # semver >=1.0.0
+│       │   ├── servicemonitor.yaml    # Prometheus scrape config
+│       │   └── kustomization.yaml
+│       └── nginx/                     # Example app with image automation
+│           ├── imagepolicy.yaml
+│           ├── imagerepository.yaml
+│           ├── kustomization.yaml
+│           ├── namespace.yaml
+│           └── nginx-deploy.yaml
+├── clusters/
+│   └── k3s-homelab/
+│       ├── apps.yaml                  # Flux Kustomization → ./apps/base
+│       ├── infrastructure.yaml        # Flux Kustomization → ./infrastructure
+│       ├── image-update-automation.yaml
+│       └── flux-system/
+│           ├── gotk-components.yaml
+│           ├── gotk-sync.yaml
+│           └── kustomization.yaml
+└── infrastructure/
+    ├── config/                        # Cluster config (non-operator resources)
+    │   ├── kustomization.yaml
+    │   ├── longhorn-config/           # BackupTarget, RecurringJob (daily S3 backup)
+    │   └── traefik-dashboard/         # IngressRoute, Middleware, BasicAuth, TLS
+    └── operators/                     # Helm-managed operators
+        ├── kustomization.yaml
+        ├── cilium/                    # CNI — eBPF, replaces flannel + kube-proxy
+        ├── cloudnative-pg/            # PostgreSQL operator
+        ├── loki/                      # Log aggregation (Garage S3 backend)
+        ├── longhorn/                  # Distributed block storage
+        ├── metrics-server/            # Resource metrics for kubectl top / HPA
+        ├── monitoring/                # Prometheus + Grafana + AlertManager + ntfy
+        ├── promtail/                  # Log collection DaemonSet
+        └── sealed-secrets/            # Secrets encryption
 ```
 
 ---
@@ -143,6 +171,11 @@ k3s-homelab/
 - NetworkPolicy support out of the box
 - Hubble observability (ready to enable)
 
+**Database — CloudNativePG**
+- PostgreSQL 17 managed by CloudNativePG operator
+- Declarative cluster configuration as CRD
+- Automatic failover and read replicas
+
 **Distributed Storage — Longhorn**
 - Block storage replicated across all 3 nodes
 - ReadWriteMany (RWX) via built-in NFS share manager
@@ -159,6 +192,7 @@ k3s-homelab/
 - Grafana at `grafana.cluster.kcn333.com` with TLS
 - node-exporter DaemonSet — CPU, RAM, disk, network per node
 - Prometheus runs with `hostNetwork: true` for direct kubelet access on k3s
+- Custom PrometheusRule: NodeHighCPU, NodeHighMemory, NodeDiskPressure, PodCrashLoop, LonghornVolumeUnhealthy
 
 **Log Aggregation — Loki + Promtail**
 - Loki in SingleBinary mode with Garage S3 backend
@@ -169,7 +203,6 @@ k3s-homelab/
 **Alerting — AlertManager + ntfy**
 - AlertManager routes alerts to self-hosted ntfy instance
 - Custom Python webhook adapter — translates JSON to ntfy HTTP API
-- `User-Agent: Mozilla/5.0` required for Cloudflare Tunnel
 - Priority mapping: critical→urgent, warning→high, info→default
 - All credentials stored as SealedSecrets
 
@@ -182,9 +215,10 @@ k3s-homelab/
 - Cluster state reconciled every 60 seconds
 - `prune: true` — resources removed from Git are removed from cluster
 - Automated image tag updates committed back to repo by Flux bot
+- Image automation uses semver policy for deterministic tag selection
 
 **Secrets Management — Sealed Secrets**
-- All secrets encrypted in Git: cloudflare-token, traefik-auth, grafana-admin, ntfy-credentials, S3-keys
+- All secrets encrypted in Git: cloudflare-token, traefik-auth, grafana-admin, ntfy-credentials, S3-keys, DB-credentials
 
 **Infrastructure as Code**
 - UFW rules managed via Ansible playbooks
@@ -196,7 +230,7 @@ k3s-homelab/
 ## Backup Strategy
 
 | What | How | Frequency | Retention | Destination |
-|------|-----|-----------|-----------|-------------|
+|---|---|---|---|---|
 | etcd snapshots | k3s automatic | Daily 12:00 UTC | 5 latest | On cluster |
 | etcd snapshots | rsync | Daily 13:00 UTC | 30 days | Debian host |
 | Longhorn volumes | RecurringJob | Daily 11:00 UTC | 2 latest | Garage S3 |
@@ -212,29 +246,33 @@ k3s-homelab/
 
 ---
 
+## Local DNS
+
+All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) via PiHole.
+
+---
+
 ## Roadmap
 
-- [ ] **Custom AlertManager rules** — high CPU/RAM thresholds
-- [ ] CI/CD pipeline — GitHub Actions + own application
-- [ ] Own microservices application (Spring Boot)
+- [ ] Grafana dashboard for application metrics (HTTP, JVM, HikariCP)
+- [ ] PrometheusRule for application-level alerts (error rate, latency)
+- [ ] NetworkPolicy — pod-level isolation (Cilium ready)
+- [ ] HPA — Horizontal Pod Autoscaler
+- [ ] Pod Disruption Budget
 - [ ] Progressive delivery — staging / production
 - [ ] HashiCorp Vault
 - [ ] External-dns
-- [ ] NetworkPolicy — pod-level isolation (Cilium ready)
 - [ ] Hubble UI — Cilium network observability
 - [ ] RBAC
+- [x] CloudNativePG — PostgreSQL operator
+- [x] Custom AlertManager rules (CPU, Memory, Disk, CrashLoop, Longhorn)
 - [x] Sealed Secrets
 - [x] Traefik dashboard with BasicAuth
 - [x] Monitoring — Prometheus + Grafana
 - [x] Log aggregation — Loki + Promtail
 - [x] Alerting — AlertManager + ntfy
 - [x] S3 backup — Garage + Longhorn RecurringJob
-
----
-
-## Local DNS
-
-All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) via PiHole.
+- [x] metrics-server — kubectl top + HPA ready
 
 ---
 
