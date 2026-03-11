@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: clients-api
+  namespace: clients-api
+  annotations:
+    traefik.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - clients-api.cluster.kcn333.com
+      secretName: local-prod-kcn333-tls
+  rules:
+    - host: clients-api.cluster.kcn333.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: clients-api
+                port:
+                  number: 80

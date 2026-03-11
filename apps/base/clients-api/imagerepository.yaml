@@ -1,0 +1,8 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: clients-api
+  namespace: flux-system
+spec:
+  image: kcn333/clients-api
+  interval: 1m0s

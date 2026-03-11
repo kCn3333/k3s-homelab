@@ -4,4 +4,8 @@ resources:
   - namespace.yaml
   - db-secret-sealed.yaml
   - db-cluster.yaml
-  # deployment, service, ingress, hpa
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - imagerepository.yaml
+  - imagepolicy.yaml

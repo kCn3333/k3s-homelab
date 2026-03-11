@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clients-api
+  namespace: clients-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: clients-api
+  template:
+    metadata:
+      labels:
+        app: clients-api
+    spec:
+      containers:
+        - name: clients-api
+          image: kcn333/clients-api:1.1.0 # {"$imagepolicy": "flux-system:clients-api"}
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
