@@ -19,10 +19,10 @@ spec:
           claimName: nginx-pvc
       containers:
       - name: nginx
-        image: nginx:1.29.5 # {"$imagepolicy": "flux-system:nginx"}
+        image: nginx:1.29.6 # {"$imagepolicy": "flux-system:nginx"}
         volumeMounts:
-          - name: nginx-data
-            mountPath: /usr/share/nginx/html
+        - name: nginx-data
+          mountPath: /usr/share/nginx/html
         ports:
         - containerPort: 80
         resources:
