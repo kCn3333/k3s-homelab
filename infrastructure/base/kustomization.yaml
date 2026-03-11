@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cilium
+  - longhorn
+  - sealed-secrets
+  - monitoring
+  - traefik-dashboard
+  - loki
+  - promtail
+  - metrics-server
