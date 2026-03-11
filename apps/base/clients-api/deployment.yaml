@@ -18,6 +18,19 @@ spec:
           image: kcn333/clients-api:1.1.0 # {"$imagepolicy": "flux-system:clients-api"}
           ports:
             - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: clients-db-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: clients-db-secret
+                  key: password
           resources:
             requests:
               memory: "128Mi"
