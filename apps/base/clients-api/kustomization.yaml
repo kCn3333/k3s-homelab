@@ -9,3 +9,4 @@ resources:
   - ingress.yaml
   - imagerepository.yaml
   - imagepolicy.yaml
+  - servicemonitor.yaml
