@@ -1,0 +1,32 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: clients-api
+  namespace: clients
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: clients-api
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60     # czekaj 60s przed scale up
+      policies:
+        - type: Pods
+          value: 1                        # dodawaj 1 pod na raz
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300    # czekaj 5 minut przed scale down
+      policies:
+        - type: Pods
+          value: 1                        # usuwaj 1 pod na raz
+          periodSeconds: 120

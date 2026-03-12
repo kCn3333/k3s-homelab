@@ -10,3 +10,4 @@ resources:
   - imagerepository.yaml
   - imagepolicy.yaml
   - servicemonitor.yaml
+  - hpa.yaml
