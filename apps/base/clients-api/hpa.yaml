@@ -9,7 +9,7 @@ spec:
     kind: Deployment
     name: clients-api
   minReplicas: 2
-  maxReplicas: 5
+  maxReplicas: 8
   metrics:
     - type: Resource
       resource:
@@ -19,11 +19,11 @@ spec:
           averageUtilization: 70
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 60     # czekaj 60s przed scale up
+      stabilizationWindowSeconds: 0     # czekaj 60s przed scale up
       policies:
         - type: Pods
-          value: 1                        # dodawaj 1 pod na raz
-          periodSeconds: 60
+          value: 2                        # dodawaj 1 pod na raz
+          periodSeconds: 30
     scaleDown:
       stabilizationWindowSeconds: 300    # czekaj 5 minut przed scale down
       policies:
