@@ -36,9 +36,7 @@ spec:
         enabled: false  
       relay:
         enabled: true
-        podTemplate:
-          spec:
-            hostNetwork: true
+        hostNetwork: true
         tls:
           server:
             enabled: false
