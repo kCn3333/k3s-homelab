@@ -1,0 +1,58 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: clients-api-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack 
+spec:
+  groups:
+    - name: clients-api
+      interval: 1m
+      rules:
+
+        - alert: ClientsApiHighErrorRate
+          expr: |
+            (
+              sum(rate(http_server_requests_seconds_count{application="clients-api", status=~"5.."}[5m]))
+              or vector(0)
+            )
+            /
+            sum(rate(http_server_requests_seconds_count{application="clients-api"}[5m]))
+            * 100 > 1
+          for: 5m
+          labels:
+            severity: warning
+            namespace: clients
+          annotations:
+            summary: "clients-api high error rate"
+            description: "Error rate is {{ printf \"%.2f\" $value }}% (threshold: 1%)"
+
+        - alert: ClientsApiHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum by(le) (
+                rate(http_server_requests_seconds_bucket{application="clients-api", uri="/api/clients"}[5m])
+              )
+            ) * 1000 > 2000
+          for: 5m
+          labels:
+            severity: warning
+            namespace: clients
+          annotations:
+            summary: "clients-api high p99 latency"
+            description: "p99 latency is {{ printf \"%.0f\" $value }}ms (threshold: 2000ms)"
+
+        - alert: ClientsApiPodRestarting
+          expr: |
+            increase(kube_pod_container_status_restarts_total{
+              namespace="clients",
+              container="clients-api"
+            }[1h]) > 3
+          for: 0m
+          labels:
+            severity: critical
+            namespace: clients
+          annotations:
+            summary: "clients-api pod restarting"
+            description: "Pod {{ $labels.pod }} restarted {{ printf \"%.0f\" $value }} times in the last hour"

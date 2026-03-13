@@ -12,3 +12,4 @@ resources:
   - alertmanager-ntfy-sealed.yaml
   - ntfy-webhook.yaml
   - prometheusrule-custom.yaml
+  - clients-api-rules.yaml
