@@ -35,6 +35,9 @@ spec:
       replicas: 1
     hubble:
       enabled: true
+      metrics:
+        enabled: true
+        port: 4244
       relay:
         enabled: true
       ui:
