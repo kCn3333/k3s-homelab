@@ -30,3 +30,18 @@ spec:
     k8sServicePort: 6443
     operator:
       replicas: 1
+    hubble:
+      enabled: true
+      relay:
+        enabled: true
+      ui:
+        enabled: true
+        ingress:
+          enabled: true
+          ingressClassName: traefik
+          hosts:
+            - hubble.cluster.kcn333.com
+          tls:
+            - secretName: hubble-tls
+              hosts:
+                - hubble.cluster.kcn333.com

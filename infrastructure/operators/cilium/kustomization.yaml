@@ -5,3 +5,4 @@ metadata:
 resources:
   - helmrepository.yaml
   - helmrelease.yaml
+  - certificate.yaml
