@@ -15,7 +15,7 @@ The cluster is intentionally designed to mirror production environments: HA cont
 ## Infrastructure
 
 | Component | Technology |
-|---|---|
+| :--- | :--- |
 | Hardware | 3× HP T630 Thin Client |
 | OS | Ubuntu 24.04 LTS |
 | Kubernetes | k3s v1.34 (embedded etcd, HA) |
@@ -117,12 +117,15 @@ k3s-homelab/
 │       │   ├── namespace.yaml
 │       │   ├── db-cluster.yaml        # CloudNativePG cluster
 │       │   ├── db-secret-sealed.yaml  # DB credentials (SealedSecret)
-│       │   ├── deployment.yaml        # Spring Boot, prod profile, 2 replicas
+│       │   ├── deployment.yaml        # Spring Boot, prod profile, probes, cpu 2000m
 │       │   ├── service.yaml           # Named port (required by ServiceMonitor)
 │       │   ├── ingress.yaml           # TLS ingress via Traefik
 │       │   ├── imagerepository.yaml   # Scans kcn333/clients-api every 1m
 │       │   ├── imagepolicy.yaml       # semver >=1.0.0
 │       │   ├── servicemonitor.yaml    # Prometheus scrape config
+│       │   ├── hpa.yaml               # min:2 max:6 replicas, CPU 70%
+│       │   ├── pdb.yaml               # minAvailable: 1
+│       │   ├── networkpolicy.yaml     # DB only from clients-api, API only from kube-system+monitoring
 │       │   └── kustomization.yaml
 │       └── nginx/                     # Example app with image automation
 │           ├── imagepolicy.yaml
@@ -169,12 +172,19 @@ k3s-homelab/
 - Replaces both flannel and kube-proxy entirely
 - eBPF-based networking — higher performance, lower overhead
 - NetworkPolicy support out of the box
-- Hubble observability (ready to enable)
+- Hubble observability UI (WIP — relay stabilization in progress)
 
 **Database — CloudNativePG**
 - PostgreSQL 17 managed by CloudNativePG operator
 - Declarative cluster configuration as CRD
 - Automatic failover and read replicas
+
+**Application — clients-api (Spring Boot)**
+- HPA: min 2 / max 6 replicas, CPU target 70%
+- Pod Disruption Budget: minAvailable 1 (safe during node drain)
+- NetworkPolicy: DB accessible only from clients-api; API only from kube-system + monitoring
+- Readiness/Liveness probes with JVM warmup delay
+- Full observability: ServiceMonitor + custom PrometheusRules + Grafana dashboard + Loki logs
 
 **Distributed Storage — Longhorn**
 - Block storage replicated across all 3 nodes
@@ -192,7 +202,8 @@ k3s-homelab/
 - Grafana at `grafana.cluster.kcn333.com` with TLS
 - node-exporter DaemonSet — CPU, RAM, disk, network per node
 - Prometheus runs with `hostNetwork: true` for direct kubelet access on k3s
-- Custom PrometheusRule: NodeHighCPU, NodeHighMemory, NodeDiskPressure, PodCrashLoop, LonghornVolumeUnhealthy
+- Custom PrometheusRules: NodeHighCPU, NodeHighMemory, NodeDiskPressure, PodCrashLoop, LonghornVolumeUnhealthy
+- Application-level alerts: ClientsApiHighErrorRate, ClientsApiHighLatency, ClientsApiPodRestarting
 
 **Log Aggregation — Loki + Promtail**
 - Loki in SingleBinary mode with Garage S3 backend
@@ -204,6 +215,7 @@ k3s-homelab/
 - AlertManager routes alerts to self-hosted ntfy instance
 - Custom Python webhook adapter — translates JSON to ntfy HTTP API
 - Priority mapping: critical→urgent, warning→high, info→default
+- Noise suppression: InfoInhibitor routed to null receiver
 - All credentials stored as SealedSecrets
 
 **TLS Everywhere**
@@ -221,7 +233,7 @@ k3s-homelab/
 - All secrets encrypted in Git: cloudflare-token, traefik-auth, grafana-admin, ntfy-credentials, S3-keys, DB-credentials
 
 **Infrastructure as Code**
-- UFW rules managed via Ansible playbooks
+- UFW rules managed via Ansible playbooks (Cilium health 4240, Hubble 4244, pod CIDR 10.0.0.0/8)
 - NTP synchronization playbook (workers → master chrony)
 - Graceful node shutdown playbook
 
@@ -230,7 +242,7 @@ k3s-homelab/
 ## Backup Strategy
 
 | What | How | Frequency | Retention | Destination |
-|---|---|---|---|---|
+| :--- | :--- | :--- | :--- | :--- |
 | etcd snapshots | k3s automatic | Daily 12:00 UTC | 5 latest | On cluster |
 | etcd snapshots | rsync | Daily 13:00 UTC | 30 days | Debian host |
 | Longhorn volumes | RecurringJob | Daily 11:00 UTC | 2 latest | Garage S3 |
@@ -254,16 +266,18 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) via Pi
 
 ## Roadmap
 
-- [ ] Grafana dashboard for application metrics (HTTP, JVM, HikariCP)
-- [ ] PrometheusRule for application-level alerts (error rate, latency)
-- [ ] NetworkPolicy — pod-level isolation (Cilium ready)
-- [ ] HPA — Horizontal Pod Autoscaler
-- [ ] Pod Disruption Budget
+- [ ] **Hubble UI** — fix relay stability (Cilium reinstall to reset internal certs)
 - [ ] Progressive delivery — staging / production
 - [ ] HashiCorp Vault
 - [ ] External-dns
-- [ ] Hubble UI — Cilium network observability
 - [ ] RBAC
+- [ ] Grafana dashboard — save as ConfigMap in Git
+- [x] PrometheusRule for clients-api — HighErrorRate, HighLatency, PodRestarting
+- [x] AlertManager noise suppression — null receiver for InfoInhibitor
+- [x] Pod Disruption Budget
+- [x] NetworkPolicy — pod-level isolation (DB + API)
+- [x] HPA — Horizontal Pod Autoscaler (min 2 / max 6)
+- [x] Grafana dashboard for application metrics (HTTP, JVM, HikariCP)
 - [x] CloudNativePG — PostgreSQL operator
 - [x] Custom AlertManager rules (CPU, Memory, Disk, CrashLoop, Longhorn)
 - [x] Sealed Secrets
