@@ -32,8 +32,13 @@ spec:
       replicas: 1
     hubble:
       enabled: true
+      tls:
+        enabled: false  
       relay:
         enabled: true
+        tls:
+          server:
+            enabled: false
       ui:
         enabled: true
         ingress:
