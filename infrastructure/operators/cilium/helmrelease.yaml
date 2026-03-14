@@ -34,6 +34,10 @@ spec:
       replicas: 1
     hubble:
       enabled: true
+      tls:
+        auto:
+          enabled: true
+          method: helm
       relay:
         enabled: true
       ui:
