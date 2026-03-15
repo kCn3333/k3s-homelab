@@ -23,8 +23,6 @@ spec:
       - --kubelet-insecure-tls
       - --kubelet-port=10250
       - --metric-resolution=15s
-    hostNetwork:
-      enabled: true
     containerPort: 4443
     service:
       port: 443
