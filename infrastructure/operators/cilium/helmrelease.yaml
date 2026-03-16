@@ -37,6 +37,7 @@ spec:
       tls:
         auto:
           enabled: true
+          method: helm
       relay:
         enabled: true
         tls:
