@@ -39,6 +39,9 @@ spec:
           enabled: true
       relay:
         enabled: true
+        tls:
+          server:
+            enabled: true
       ui:
         enabled: true
         ingress:
