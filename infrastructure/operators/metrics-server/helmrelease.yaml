@@ -24,8 +24,6 @@ spec:
       - --kubelet-port=10250
       - --metric-resolution=15s
     containerPort: 4443
-    hostNetwork:
-      enabled: true
     service:
       port: 443
       targetPort: 4443
