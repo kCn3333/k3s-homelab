@@ -29,12 +29,13 @@ spec:
 
     k8sServiceHost: 192.168.55.10
     k8sServicePort: 6443
-    listenAddress: ":4244"
     operator:
       replicas: 1
     hubble:
       enabled: true
+      listenAddress: ":4244"
       tls:
+        enabled: true
         auto:
           enabled: true
           method: helm
