@@ -33,6 +33,7 @@ spec:
       replicas: 1
     hubble:
       enabled: true
+      maxFlows: 16384
       listenAddress: ":4244"
       tls:
         enabled: true
@@ -41,6 +42,7 @@ spec:
           method: helm
       relay:
         enabled: true
+        retryTimeout: 1m
         tls:
           server:
             enabled: true
