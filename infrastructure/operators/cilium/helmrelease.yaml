@@ -33,7 +33,7 @@ spec:
       replicas: 1
     hubble:
       enabled: true
-      flowBufferSize: 16384
+      eventBufferCapacity: 16383
       listenAddress: ":4244"
       tls:
         enabled: true
