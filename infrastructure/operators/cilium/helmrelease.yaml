@@ -43,9 +43,6 @@ spec:
       relay:
         enabled: true
         retryTimeout: 1m
-        tls:
-          server:
-            enabled: true
       ui:
         enabled: true
         ingress:
