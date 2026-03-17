@@ -42,6 +42,8 @@ spec:
           method: helm
       relay:
         enabled: true
+        tls:
+          enabled: true
         retryTimeout: 1m
       ui:
         enabled: true
