@@ -30,11 +30,9 @@ spec:
     k8sServicePort: 6443
     operator:
       replicas: 1
-    bpf:
-      masquerade: true
     hubble:
       enabled: true
-      eventBufferCapacity: 65535
+      eventBufferCapacity: 16383
       listenAddress: ":4244"
       monitor:
         aggregation: low
