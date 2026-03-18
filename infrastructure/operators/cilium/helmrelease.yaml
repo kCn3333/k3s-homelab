@@ -32,7 +32,7 @@ spec:
       replicas: 1
     hubble:
       enabled: true
-      eventBufferCapacity: 65536
+      eventBufferCapacity: 16383
       listenAddress: ":4244"
       monitor:
         aggregation: low
