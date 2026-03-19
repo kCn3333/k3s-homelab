@@ -21,4 +21,4 @@ spec:
       retries: 3
   values:
     image:
-      tag: ""    # controlled by Flux ImagePolicy
+      tag: "1.4.0" # {"$imagepolicy": "flux-system:clients-api:tag"}
