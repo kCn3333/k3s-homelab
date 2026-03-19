@@ -13,5 +13,5 @@ resources:
  # - hpa.yaml
  # - pdb.yaml
  # - networkpolicy.yaml
-   - gitrepository.yaml
-   - helmrelease.yaml
+  - gitrepository.yaml
+  - helmrelease.yaml
