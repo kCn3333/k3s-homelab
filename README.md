@@ -19,7 +19,7 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | Hardware | 3× HP T630 Thin Client |
 | OS | Ubuntu 24.04 LTS |
 | Kubernetes | k3s v1.34 (embedded etcd, HA) |
-| CNI | Cilium v1.19.1 (eBPF) |
+| CNI | Cilium v1.19.1 (eBPF, VXLAN) |
 | Storage | Longhorn v1.11 (distributed block storage) |
 | Object Storage | Garage v2.2.0 (self-hosted S3, Debian host) |
 | Database | CloudNativePG (PostgreSQL 17) |
@@ -98,7 +98,7 @@ Flux ImagePolicy detects new semver tag
 Flux commits updated tag to this repo
         │
         ▼
-Flux kustomize-controller detects change
+Flux HelmRelease upgrade triggered
         │
         ▼
 Rolling update deployed to cluster
@@ -117,15 +117,10 @@ k3s-homelab/
 │       │   ├── namespace.yaml
 │       │   ├── db-cluster.yaml        # CloudNativePG cluster
 │       │   ├── db-secret-sealed.yaml  # DB credentials (SealedSecret)
-│       │   ├── deployment.yaml        # Spring Boot, prod profile, probes, cpu 2000m
-│       │   ├── service.yaml           # Named port (required by ServiceMonitor)
-│       │   ├── ingress.yaml           # TLS ingress via Traefik
 │       │   ├── imagerepository.yaml   # Scans kcn333/clients-api every 1m
 │       │   ├── imagepolicy.yaml       # semver >=1.0.0
-│       │   ├── servicemonitor.yaml    # Prometheus scrape config
-│       │   ├── hpa.yaml               # min:2 max:6 replicas, CPU 70%
-│       │   ├── pdb.yaml               # minAvailable: 1
-│       │   ├── networkpolicy.yaml     # DB only from clients-api, API only from kube-system+monitoring
+│       │   ├── gitrepository.yaml     # Source: clients-api GitHub repo
+│       │   ├── helmrelease.yaml       # Deploys helm/clients-api chart
 │       │   └── kustomization.yaml
 │       └── nginx/                     # Example app with image automation
 │           ├── imagepolicy.yaml
@@ -149,7 +144,7 @@ k3s-homelab/
     │   └── traefik-dashboard/         # IngressRoute, Middleware, BasicAuth, TLS
     └── operators/                     # Helm-managed operators
         ├── kustomization.yaml
-        ├── cilium/                    # CNI — eBPF, replaces flannel + kube-proxy
+        ├── cilium/                    # CNI — eBPF, VXLAN mode
         ├── cloudnative-pg/            # PostgreSQL operator
         ├── loki/                      # Log aggregation (Garage S3 backend)
         ├── longhorn/                  # Distributed block storage
@@ -169,28 +164,27 @@ k3s-homelab/
 - HAProxy with round-robin load balancing across all API servers
 
 **CNI — Cilium (eBPF)**
-- Replaces both flannel and kube-proxy entirely
 - eBPF-based networking — higher performance, lower overhead
 - NetworkPolicy support out of the box
-- Hubble observability UI (WIP — relay stabilization in progress)
-
-**Database — CloudNativePG**
-- PostgreSQL 17 managed by CloudNativePG operator
-- Declarative cluster configuration as CRD
-- Automatic failover and read replicas
+- VXLAN tunnel mode with kube-proxy for service routing
 
 **Application — clients-api (Spring Boot)**
+- Deployed via custom Helm chart from application repository
 - HPA: min 2 / max 6 replicas, CPU target 70%
 - Pod Disruption Budget: minAvailable 1 (safe during node drain)
 - NetworkPolicy: DB accessible only from clients-api; API only from kube-system + monitoring
 - Readiness/Liveness probes with JVM warmup delay
 - Full observability: ServiceMonitor + custom PrometheusRules + Grafana dashboard + Loki logs
 
+**Database — CloudNativePG**
+- PostgreSQL 17 managed by CloudNativePG operator
+- Declarative cluster configuration as CRD
+- Automatic failover and read replicas
+
 **Distributed Storage — Longhorn**
 - Block storage replicated across all 3 nodes
 - ReadWriteMany (RWX) via built-in NFS share manager
 - Daily automated backups to Garage S3 (retain: 2)
-- BackupTarget configured via CRD, credentials as SealedSecret
 
 **Object Storage — Garage S3**
 - Self-hosted S3-compatible storage on Debian host
@@ -201,22 +195,18 @@ k3s-homelab/
 - Prometheus with 7-day retention on Longhorn PVC
 - Grafana at `grafana.cluster.kcn333.com` with TLS
 - node-exporter DaemonSet — CPU, RAM, disk, network per node
-- Prometheus runs with `hostNetwork: true` for direct kubelet access on k3s
-- Custom PrometheusRules: NodeHighCPU, NodeHighMemory, NodeDiskPressure, PodCrashLoop, LonghornVolumeUnhealthy
-- Application-level alerts: ClientsApiHighErrorRate, ClientsApiHighLatency, ClientsApiPodRestarting
+- Custom PrometheusRules for infrastructure and application-level alerts
 
 **Log Aggregation — Loki + Promtail**
 - Loki in SingleBinary mode with Garage S3 backend
 - 7-day log retention with automatic compaction
 - Promtail DaemonSet collecting logs from all 3 nodes
-- Grafana Loki datasource — unified metrics + logs view
 
 **Alerting — AlertManager + ntfy**
 - AlertManager routes alerts to self-hosted ntfy instance
-- Custom Python webhook adapter — translates JSON to ntfy HTTP API
+- Custom Python webhook adapter
 - Priority mapping: critical→urgent, warning→high, info→default
 - Noise suppression: InfoInhibitor routed to null receiver
-- All credentials stored as SealedSecrets
 
 **TLS Everywhere**
 - Wildcard certificate `*.cluster.kcn333.com` via cert-manager
@@ -227,13 +217,13 @@ k3s-homelab/
 - Cluster state reconciled every 60 seconds
 - `prune: true` — resources removed from Git are removed from cluster
 - Automated image tag updates committed back to repo by Flux bot
-- Image automation uses semver policy for deterministic tag selection
+- Application deployed via Helm chart with `reconcileStrategy: Revision`
 
 **Secrets Management — Sealed Secrets**
 - All secrets encrypted in Git: cloudflare-token, traefik-auth, grafana-admin, ntfy-credentials, S3-keys, DB-credentials
 
 **Infrastructure as Code**
-- UFW rules managed via Ansible playbooks (Cilium health 4240, Hubble 4244, pod CIDR 10.0.0.0/8)
+- UFW rules managed via Ansible playbooks
 - NTP synchronization playbook (workers → master chrony)
 - Graceful node shutdown playbook
 
@@ -266,12 +256,13 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) via Pi
 
 ## Roadmap
 
-- [ ] **Hubble UI** — fix relay stability (Cilium reinstall to reset internal certs)
+- [ ] **Hubble UI** — requires Cilium native routing migration (planned)
+- [ ] Helm chart OCI registry — publish clients-api chart to ghcr.io
 - [ ] Progressive delivery — staging / production
 - [ ] HashiCorp Vault
 - [ ] External-dns
 - [ ] RBAC
-- [ ] Grafana dashboard — save as ConfigMap in Git
+- [x] Custom Helm chart for clients-api (mono-repo, Flux HelmRelease)
 - [x] PrometheusRule for clients-api — HighErrorRate, HighLatency, PodRestarting
 - [x] AlertManager noise suppression — null receiver for InfoInhibitor
 - [x] Pod Disruption Budget
