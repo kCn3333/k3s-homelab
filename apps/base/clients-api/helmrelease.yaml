@@ -8,6 +8,7 @@ spec:
   chart:
     spec:
       chart: helm/clients-api
+      reconcileStrategy: Revision
       sourceRef:
         kind: GitRepository
         name: clients-api
