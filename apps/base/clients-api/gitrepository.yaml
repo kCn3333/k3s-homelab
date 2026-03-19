@@ -1,0 +1,10 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: clients-api
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/kCn3333/clients-api
+  ref:
+    branch: main

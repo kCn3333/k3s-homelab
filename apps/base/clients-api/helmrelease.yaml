@@ -1,0 +1,24 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: clients-api
+  namespace: clients
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: helm/clients-api
+      sourceRef:
+        kind: GitRepository
+        name: clients-api
+        namespace: flux-system
+      interval: 1m
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    image:
+      tag: ""    # controlled by Flux ImagePolicy

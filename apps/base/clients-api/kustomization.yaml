@@ -4,12 +4,14 @@ resources:
   - namespace.yaml
   - db-secret-sealed.yaml
   - db-cluster.yaml
-  - deployment.yaml
-  - service.yaml
-  - ingress.yaml
+ # - deployment.yaml
+ # - service.yaml
+ # - ingress.yaml
   - imagerepository.yaml
   - imagepolicy.yaml
-  - servicemonitor.yaml
-  - hpa.yaml
-  - pdb.yaml
-  - networkpolicy.yaml
+ # - servicemonitor.yaml
+ # - hpa.yaml
+ # - pdb.yaml
+ # - networkpolicy.yaml
+   - gitrepository.yaml
+   - helmrelease.yaml
