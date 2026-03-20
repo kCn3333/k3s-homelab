@@ -24,7 +24,7 @@ spec:
     springProfile: local
     replicaCount: 1
     image:
-      tag: "1.5.2" # {"$imagepolicy": "flux-system:clients-api:tag"}
+      tag: "1.5.3" # {"$imagepolicy": "flux-system:clients-api:tag"}
     ingress:
       host: clients-api-dev.cluster.kcn333.com
     autoscaling:
