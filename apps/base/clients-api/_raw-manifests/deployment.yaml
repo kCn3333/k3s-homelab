@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: clients-api
-          image: kcn333/clients-api:1.5.2 # {"$imagepolicy": "flux-system:clients-api"}
+          image: kcn333/clients-api:1.5.3 # {"$imagepolicy": "flux-system:clients-api"}
           ports:
             - containerPort: 8080
           readinessProbe:
