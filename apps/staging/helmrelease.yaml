@@ -1,0 +1,47 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: clients-api-staging
+  namespace: clients-staging
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: clients-api
+      version: ">=1.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: clients-api
+        namespace: flux-system
+      interval: 1m
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    springProfile: prod
+    replicaCount: 1
+    image:
+      tag: "1.5.3" # {"$imagepolicy": "flux-system:clients-api:tag"}
+    database:
+      host: clients-db-staging-rw
+      port: 5432
+      name: clients_db_staging
+      credentialsSecret: clients-db-secret
+    ingress:
+      host: clients-api-staging.cluster.kcn333.com
+    autoscaling:
+      enabled: false
+    pdb:
+      enabled: false
+    serviceMonitor:
+      enabled: false
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi

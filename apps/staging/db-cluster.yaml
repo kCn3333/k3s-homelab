@@ -1,0 +1,31 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: clients-db-staging
+  namespace: clients-staging
+spec:
+  instances: 1
+
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "64MB"
+
+  bootstrap:
+    initdb:
+      database: clients_db_staging
+      owner: clients_user
+      secret:
+        name: clients-db-secret
+
+  storage:
+    size: 1Gi
+    storageClass: longhorn
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
