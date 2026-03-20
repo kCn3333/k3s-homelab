@@ -7,10 +7,10 @@ spec:
   interval: 5m
   chart:
     spec:
-      chart: clients-api
-      version: ">=1.0.0"
+      chart: helm/clients-api
+      reconcileStrategy: Revision
       sourceRef:
-        kind: HelmRepository
+        kind: GitRepository
         name: clients-api
         namespace: flux-system
       interval: 1m
@@ -22,4 +22,4 @@ spec:
       retries: 3
   values:
     image:
-      tag: "1.5.0" # {"$imagepolicy": "flux-system:clients-api:tag"}
+      tag: "1.4.0" # {"$imagepolicy": "flux-system:clients-api:tag"}
