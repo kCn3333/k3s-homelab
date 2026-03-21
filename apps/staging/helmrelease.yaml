@@ -24,7 +24,7 @@ spec:
     springProfile: prod
     replicaCount: 1
     image:
-      tag: "1.5.3" # {"$imagepolicy": "flux-system:clients-api-staging:tag"}
+      tag: "1.5.4" # {"$imagepolicy": "flux-system:clients-api-staging:tag"}
     database:
       host: clients-db-staging-rw
       port: 5432
