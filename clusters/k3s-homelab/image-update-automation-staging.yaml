@@ -1,24 +1,24 @@
-apiVersion: image.toolkit.fluxcd.io/v1
+apiVersion: image.toolkit.fluxcd.io/v1beta2
 kind: ImageUpdateAutomation
 metadata:
-  name: flux-system-dev
+  name: flux-system-staging
   namespace: flux-system
 spec:
   interval: 1m0s
   sourceRef:
     kind: GitRepository
-    name: flux-system
+    name: flux-system-staging
   git:
     checkout:
       ref:
-        branch: main
+        branch: staging
     commit:
       author:
         email: fluxbot@kcn333.com
         name: fluxbot
-      messageTemplate: 'chore(flux): update dev image tags'
+      messageTemplate: 'chore(flux): update staging image tags'
     push:
-      branch: main
+      branch: staging
   update:
-    path: ./apps/dev
+    path: ./apps/staging
     strategy: Setters
