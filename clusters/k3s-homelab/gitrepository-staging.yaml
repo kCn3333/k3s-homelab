@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m
-  url: https://github.com/kCn3333/k3s-homelab
+  url: ssh://git@github.com/kCn3333/k3s-homelab
   ref:
     branch: staging
   secretRef:
