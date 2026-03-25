@@ -6,3 +6,4 @@ resources:
   - imagepolicy.yaml
   - helmrepository.yaml
   - helmrelease.yaml
+  - image-update-automation.yaml
