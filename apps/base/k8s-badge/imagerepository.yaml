@@ -1,0 +1,17 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: k8s-badge-agent
+  namespace: flux-system
+spec:
+  image: ghcr.io/kcn3333/k8s-badge-agent
+  interval: 1m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: k8s-badge-api
+  namespace: flux-system
+spec:
+  image: ghcr.io/kcn3333/k8s-badge-api
+  interval: 1m0s

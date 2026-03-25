@@ -1,0 +1,24 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: k8s-badge
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxbot@kcn333.com
+        name: fluxbot
+      messageTemplate: 'chore(flux): update k8s-badge image tags'
+    push:
+      branch: main
+  update:
+    path: ./apps/base/k8s-badge
+    strategy: Setters

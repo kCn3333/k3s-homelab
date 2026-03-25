@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - nginx
   - clients-api
+  - k8s-badge

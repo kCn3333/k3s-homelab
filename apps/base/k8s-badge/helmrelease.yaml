@@ -1,0 +1,41 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: k8s-badge
+  namespace: monitoring
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: k8s-badge
+      version: ">=0.1.0"
+      sourceRef:
+        kind: HelmRepository
+        name: k8s-badge
+        namespace: flux-system
+      interval: 1m
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    agent:
+      image:
+        tag: "0.1.0" # {"$imagepolicy": "flux-system:k8s-badge-agent:tag"}
+    api:
+      image:
+        tag: "0.1.0" # {"$imagepolicy": "flux-system:k8s-badge-api:tag"}
+    ingress:
+      enabled: true
+      className: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/ssl-redirect: "true"
+      host: k8s-badge.cluster.kcn333.com
+      tls:
+        - secretName: local-prod-kcn333-tls
+          hosts:
+            - k8s-badge.cluster.kcn333.com
+    cors:
+      allowedSuffix: ".kcn333.com"

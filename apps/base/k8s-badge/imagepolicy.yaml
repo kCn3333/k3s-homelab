@@ -1,0 +1,23 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: k8s-badge-agent
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: k8s-badge-agent
+  policy:
+    semver:
+      range: ">=0.1.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: k8s-badge-api
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: k8s-badge-api
+  policy:
+    semver:
+      range: ">=0.1.0"
