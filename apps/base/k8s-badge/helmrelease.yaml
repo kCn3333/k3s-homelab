@@ -26,7 +26,7 @@ spec:
         tag: "0.1.9" # {"$imagepolicy": "flux-system:k8s-badge-agent:tag"}
     api:
       image:
-        tag: "0.1.9" # {"$imagepolicy": "flux-system:k8s-badge-api:tag"}
+        tag: "0.2.0" # {"$imagepolicy": "flux-system:k8s-badge-api:tag"}
     ingress:
       enabled: true
       className: traefik
