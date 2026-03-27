@@ -23,7 +23,7 @@ spec:
   values:
     agent:
       image:
-        tag: "0.2.0" # {"$imagepolicy": "flux-system:k8s-badge-agent:tag"}
+        tag: "0.2.1" # {"$imagepolicy": "flux-system:k8s-badge-agent:tag"}
     api:
       image:
         tag: "0.2.0" # {"$imagepolicy": "flux-system:k8s-badge-api:tag"}
