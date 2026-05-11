@@ -246,6 +246,8 @@ k3s-homelab/
 - **Longhorn prepare** — open-iscsi, nfs-common
 - **Graceful shutdown** — safely drains and powers off all nodes
 
+[>> Ansible-Repository <<](https://github.com/kCn3333/homelab-ansible)
+
 ---
 
 ## Local DNS
