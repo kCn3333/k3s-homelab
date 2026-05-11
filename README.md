@@ -40,41 +40,41 @@ The cluster is intentionally designed to mirror production environments: HA cont
 
 ```
                         ┌─────────────────────────────────┐
-                        │         GitHub Repository        │
-                        │    (single source of truth)      │
+                        │         GitHub Repository       │
+                        │    (single source of truth)     │
                         └────────────────┬────────────────┘
                                          │ Flux watches (pull)
                         ┌────────────────▼────────────────┐
-Local Network           │                                  │
-                        │         HAProxy :80/:443         │
- Client ──────────────► │         192.168.0.45             │
-                        │         (bare-metal LB)          │
+Local Network           │                                 │
+                        │         HAProxy :80/:443        │
+ Client ──────────────► │         192.168.0.45            │
+                        │         (bare-metal LB)         │
                         └────────────────┬────────────────┘
                                          │
                         ┌────────────────▼────────────────┐
-                        │         Traefik Ingress          │
-                        │    HTTP → HTTPS redirect         │
-                        │    TLS termination               │
+                        │         Traefik Ingress         │
+                        │    HTTP → HTTPS redirect        │
+                        │    TLS termination              │
                         └────────────────┬────────────────┘
                                          │
               ┌──────────────────────────┼──────────────────────────┐
               │                          │                          │
     ┌─────────▼────────┐     ┌──────────▼────────┐     ┌──────────▼────────┐
-    │  master          │     │  worker1           │     │  worker2          │
-    │  192.168.55.10   │     │  192.168.55.11     │     │  192.168.55.12    │
-    │  control-plane   │◄────►  control-plane    │◄────►  control-plane   │
-    │  etcd            │     │  etcd              │     │  etcd             │
-    │  node-exporter   │     │  node-exporter     │     │  node-exporter    │
-    │  promtail        │     │  promtail          │     │  promtail         │
+    │  master          │     │  worker1          │     │  worker2          │
+    │  192.168.55.10   │     │  192.168.55.11    │     │  192.168.55.12    │
+    │  control-plane   │◄────►  control-plane    │◄────►  control-plane    │
+    │  etcd            │     │  etcd             │     │  etcd             │
+    │  node-exporter   │     │  node-exporter    │     │  node-exporter    │
+    │  promtail        │     │  promtail         │     │  promtail         │
     └──────────────────┘     └───────────────────┘     └───────────────────┘
               │                          │                          │
               └──────────────────────────┼──────────────────────────┘
                                          │ metrics + logs
                         ┌────────────────▼────────────────┐
-                        │      Debian Host 192.168.0.46    │
-                        │      Garage S3 (25GB)            │
-                        │      • longhorn-backup bucket    │
-                        │      • loki-logs bucket          │
+                        │      Debian Host 192.168.0.46   │
+                        │      Garage S3 (25GB)           │
+                        │      • longhorn-backup bucket   │
+                        │      • loki-logs bucket         │
                         └─────────────────────────────────┘
 ```
 
@@ -257,11 +257,11 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) via Pi
 ## Roadmap
 
 - [ ] **Hubble UI** — requires Cilium native routing migration (planned)
-- [ ] Helm chart OCI registry — publish clients-api chart to ghcr.io
-- [ ] Progressive delivery — staging / production
 - [ ] HashiCorp Vault
 - [ ] External-dns
 - [ ] RBAC
+- [x] Helm chart OCI registry — publish clients-api chart to ghcr.io
+- [x] Progressive delivery — staging / production
 - [x] Custom Helm chart for clients-api (mono-repo, Flux HelmRelease)
 - [x] PrometheusRule for clients-api — HighErrorRate, HighLatency, PodRestarting
 - [x] AlertManager noise suppression — null receiver for InfoInhibitor
