@@ -8,3 +8,4 @@ resources:
   - imagepolicy.yaml
   - helmrelease.yaml
   - helmrepository.yaml
+  - networkpolicy-cnpg-operator.yaml
