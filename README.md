@@ -71,7 +71,7 @@ Local Network           │                                 │
               └──────────────────────────┼──────────────────────────┘
                                          │ metrics + logs
                         ┌────────────────▼────────────────┐
-                        │      Debian Host 192.168.0.46   │
+                        │      Logos 192.168.0.56         │
                         │      Garage S3 (25GB)           │
                         │      • longhorn-backup bucket   │
                         │      • loki-logs bucket         │
