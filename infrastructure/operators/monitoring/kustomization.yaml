@@ -13,3 +13,5 @@ resources:
   - ntfy-webhook.yaml
   - prometheusrule-custom.yaml
   - clients-api-rules.yaml
+  - grafana-dashboard-clients-api.yaml
+  - grafana-datasource-loki.yaml
