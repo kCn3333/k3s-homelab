@@ -45,9 +45,11 @@ spec:
         dashboards:
           env:
             HEALTH_PORT: "8081"
+            REQ_RETRY_TOTAL: "8"
         datasources:
           env:
             HEALTH_PORT: "8082"
+            REQ_RETRY_TOTAL: "8"
       admin:
         existingSecret: grafana-admin-secret
         userKey: admin-user
