@@ -41,6 +41,13 @@ spec:
         metricRelabelings: []
     grafana:
       enabled: true
+      sidecar:
+        dashboards:
+          env:
+            HEALTH_PORT: "8081"
+        datasources:
+          env:
+            HEALTH_PORT: "8082"
       admin:
         existingSecret: grafana-admin-secret
         userKey: admin-user
