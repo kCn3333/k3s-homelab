@@ -18,8 +18,8 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | :--- | :--- |
 | Hardware | 3× HP T630 Thin Client |
 | OS | Ubuntu 24.04 LTS |
-| Kubernetes | k3s v1.34 (embedded etcd, HA) |
-| CNI | Cilium v1.19.1 (eBPF, VXLAN) |
+| Kubernetes | k3s v1.34.4+k3s1 (embedded etcd, HA) |
+| CNI | Cilium v1.19.7 (eBPF, VXLAN) |
 | Storage | Longhorn v1.11 (distributed block storage) |
 | Object Storage | Garage v2.2.0 (self-hosted S3, Debian host) |
 | Database | CloudNativePG (PostgreSQL 17) |
@@ -28,10 +28,11 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | Certificate Management | cert-manager + Let's Encrypt (DNS-01) |
 | Secrets Management | Sealed Secrets v0.36 |
 | GitOps | Flux v2 |
-| Metrics | kube-prometheus-stack v82 (Prometheus + Grafana + AlertManager) |
+| Metrics | kube-prometheus-stack v82.10.1 (Prometheus + Grafana + AlertManager) |
 | Logs | Loki v3.6 + Promtail (stored in Garage S3) |
+| Network Observability | Hubble Relay v1.19.7 + Hubble UI v0.13.5 |
 | Alerting | AlertManager → ntfy (self-hosted, Cloudflare Tunnel) |
-| DNS | Cloudflare (public) + PiHole (local) |
+| DNS | Cloudflare (public) + AdGuard Home (local) |
 | Firewall | UFW (managed via Ansible) |
 
 ---
@@ -167,6 +168,8 @@ k3s-homelab/
 - eBPF-based networking — higher performance, lower overhead
 - NetworkPolicy support out of the box
 - VXLAN tunnel mode with kube-proxy for service routing
+- Hubble Relay and Hubble UI for cluster-wide network-flow visibility
+- Hubble UI exposed through Traefik at `hubble.cluster.kcn333.com`
 
 **Application — clients-api (Spring Boot)**
 - Deployed via custom Helm chart from application repository
@@ -194,8 +197,16 @@ k3s-homelab/
 **Monitoring — kube-prometheus-stack**
 - Prometheus with 7-day retention on Longhorn PVC
 - Grafana at `grafana.cluster.kcn333.com` with TLS
+- Prometheus uses `hostNetwork` and is reachable from cluster nodes on TCP `9090` through an Ansible-managed UFW rule
+- The `clients-api` dashboard and Loki datasource are provisioned declaratively from Git
 - node-exporter DaemonSet — CPU, RAM, disk, network per node
 - Custom PrometheusRules for infrastructure and application-level alerts
+
+**Network Observability — Hubble**
+- Cilium agents expose the Hubble observer API on `NodeIP:4244`
+- Hubble Relay discovers local peers through `Service/hubble-peer` and connects to all advertised agents over TLS
+- Hubble UI displays live flows and service maps through its Traefik Ingress
+- Pod-to-NodeIP observer connectivity was restored by upgrading Cilium from `1.19.1` to `1.19.7`; native routing and `hostNetwork` are not required
 
 **Log Aggregation — Loki + Promtail**
 - Loki in SingleBinary mode with Garage S3 backend
@@ -252,13 +263,13 @@ k3s-homelab/
 
 ## Local DNS
 
-All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) via PiHole.
+All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) through AdGuard Home.
 
 ---
 
 ## Roadmap
 
-- [ ] **Hubble UI** — requires Cilium native routing migration (planned)
+- [x] Hubble Relay and Hubble UI — live flows and service maps operational on Cilium `1.19.7`
 - [ ] HashiCorp Vault
 - [ ] External-dns
 - [ ] RBAC
@@ -287,4 +298,4 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) via Pi
 
 Actively developed as a learning environment for production DevOps practices. Each component was chosen to reflect real-world tooling used in professional Kubernetes deployments.
 
-Commit history follows [Conventional Commits](https://www.conventionalcommits.org/) specification.
+
