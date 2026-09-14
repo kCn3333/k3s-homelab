@@ -26,7 +26,7 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | Ingress | Traefik v3 |
 | Load Balancer | HAProxy (bare-metal) |
 | Certificate Management | cert-manager + Let's Encrypt (DNS-01) |
-| Secrets Management | Sealed Secrets v0.36 |
+| Secrets Management | Sealed Secrets v0.40.0 (Helm chart 2.20.0) |
 | GitOps | Flux v2 |
 | Metrics | kube-prometheus-stack v82.10.1 (Prometheus + Grafana + AlertManager) |
 | Logs | Loki v3.6 + Promtail (stored in Garage S3) |
@@ -231,7 +231,10 @@ k3s-homelab/
 - Application deployed via Helm chart with `reconcileStrategy: Revision`
 
 **Secrets Management — Sealed Secrets**
+- Controller and local client run version `0.40.0` from Helm chart `2.20.0`
 - All secrets encrypted in Git: cloudflare-token, traefik-auth, grafana-admin, ntfy-credentials, S3-keys, DB-credentials
+- All active sealing key pairs are backed up as an encrypted, checksum-verified recovery set outside the cluster
+- A scoped CiliumNetworkPolicy permits API server proxy traffic from cluster nodes to the controller on `8080/TCP`
 
 **Infrastructure as Code**
 - UFW rules managed via Ansible playbooks
@@ -247,6 +250,7 @@ k3s-homelab/
 | etcd snapshots | k3s automatic | Daily 12:00 UTC | 5 latest | On cluster |
 | etcd snapshots | rsync | Daily 13:00 UTC | 30 days | Debian host |
 | Longhorn volumes | RecurringJob | Daily 11:00 UTC | 2 latest | Garage S3 |
+| Sealed Secrets keys | Encrypted export + SHA-256 | After key rotation | All active keys | Removable off-cluster storage |
 
 ---
 
@@ -297,5 +301,6 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) throug
 ## Notes
 
 Actively developed as a learning environment for production DevOps practices. Each component was chosen to reflect real-world tooling used in professional Kubernetes deployments.
+
 
 
