@@ -140,6 +140,11 @@ spec:
               action        = "replace"
               target_label  = "__path__"
             }
+            rule {
+              replacement  = "alloy"
+              action       = "replace"
+              target_label = "collector"
+            }
           }
 
           local.file_match "pod_logs" {
@@ -156,9 +161,14 @@ spec:
           loki.process "pod_logs" {
             stage.cri {}
 
-            // Shadow mode: process logs but do not forward them to Loki yet.
-            forward_to = []
+            forward_to = [loki.write.default.receiver]
           }
+          loki.write "default" {
+            endpoint {
+            url = "http://loki.loki.svc.cluster.local:3100/loki/api/v1/push"
+            }
+          }
+
       storagePath: /var/lib/alloy
 
       mounts:
