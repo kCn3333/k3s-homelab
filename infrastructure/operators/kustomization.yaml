@@ -7,5 +7,6 @@ resources:
   - monitoring
   - loki
   - promtail
+  - alloy
   - metrics-server
   - cloudnative-pg
