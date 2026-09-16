@@ -18,8 +18,8 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | :--- | :--- |
 | Hardware | 3× HP T630 Thin Client |
 | OS | Ubuntu 24.04 LTS |
-| Kubernetes | k3s v1.34.4+k3s1 (embedded etcd, HA) |
-| CNI | Cilium v1.19.7 (eBPF, VXLAN) |
+| Kubernetes | k3s v1.35.8+k3s1 (embedded etcd, HA) |
+| CNI | Cilium v1.20.2 (eBPF, VXLAN) |
 | Storage | Longhorn v1.11 (distributed block storage) |
 | Object Storage | Garage v2.2.0 (self-hosted S3, Debian host) |
 | Database | CloudNativePG (PostgreSQL 17) |
@@ -30,8 +30,8 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | GitOps | Flux v2 |
 | Resource Metrics | metrics-server v0.8.1 (Helm chart 3.13.1) |
 | Metrics | kube-prometheus-stack v82.10.1 (Prometheus + Grafana + AlertManager) |
-| Logs | Loki v3.6 + Promtail (stored in Garage S3) |
-| Network Observability | Hubble Relay v1.19.7 + Hubble UI v0.13.5 |
+| Logs | Loki v3.6 + Grafana Alloy v1.19.2 (stored in Garage S3) |
+| Network Observability | Hubble Relay v1.20.2 + Hubble UI v0.13.5 |
 | Alerting | AlertManager → ntfy (self-hosted, Cloudflare Tunnel) |
 | DNS | Cloudflare (public) + AdGuard Home (local) |
 | Firewall | UFW (managed via Ansible) |
@@ -67,7 +67,7 @@ Local Network           │                                 │
     │  control-plane   │◄────►  control-plane    │◄────►  control-plane    │
     │  etcd            │     │  etcd             │     │  etcd             │
     │  node-exporter   │     │  node-exporter    │     │  node-exporter    │
-    │  promtail        │     │  promtail         │     │  promtail         │
+    │  alloy           │     │  alloy            │     │  alloy            │
     └──────────────────┘     └───────────────────┘     └───────────────────┘
               │                          │                          │
               └──────────────────────────┼──────────────────────────┘
@@ -148,11 +148,11 @@ k3s-homelab/
         ├── kustomization.yaml
         ├── cilium/                    # CNI — eBPF, VXLAN mode
         ├── cloudnative-pg/            # PostgreSQL operator
+        ├── alloy/                     # Per-node log collection DaemonSet
         ├── loki/                      # Log aggregation (Garage S3 backend)
         ├── longhorn/                  # Distributed block storage
         ├── metrics-server/            # Resource metrics for kubectl top / HPA
         ├── monitoring/                # Prometheus + Grafana + AlertManager + ntfy
-        ├── promtail/                  # Log collection DaemonSet
         └── sealed-secrets/            # Secrets encryption
 ```
 
@@ -212,12 +212,15 @@ k3s-homelab/
 - Cilium agents expose the Hubble observer API on `NodeIP:4244`
 - Hubble Relay discovers local peers through `Service/hubble-peer` and connects to all advertised agents over TLS
 - Hubble UI displays live flows and service maps through its Traefik Ingress
-- Pod-to-NodeIP observer connectivity was restored by upgrading Cilium from `1.19.1` to `1.19.7`; native routing and `hostNetwork` are not required
+- Pod-to-NodeIP observer connectivity was restored by upgrading Cilium from `1.19.1` to `1.19.7`
+- Relay, UI, live flows and service maps were revalidated on Cilium `1.20.2`; `hostNetwork` is not required
 
-**Log Aggregation — Loki + Promtail**
+**Log Aggregation — Loki + Grafana Alloy**
 - Loki in SingleBinary mode with Garage S3 backend
 - 7-day log retention with automatic compaction
-- Promtail DaemonSet collecting logs from all 3 nodes
+- Alloy `v1.19.2` DaemonSet collecting local CRI logs from all 3 nodes
+- Per-node positions persisted in `/var/lib/alloy` across Pod and node restarts
+- New Loki streams identified by `collector="alloy"`; Promtail is no longer deployed
 
 **Alerting — AlertManager + ntfy**
 - AlertManager routes alerts to self-hosted ntfy instance
@@ -265,7 +268,8 @@ k3s-homelab/
 - **UFW playbook** — firewall rules on all k3s nodes
 - **NTP playbook** — timesyncd config pointing to master (chrony)
 - **Longhorn prepare** — open-iscsi, nfs-common
-- **Graceful shutdown** — safely drains and powers off all nodes
+- **Power lifecycle** — Wake-on-LAN startup validation and graceful shutdown
+- **Controlled K3s upgrade** — etcd snapshot, SHA-256 verification, sequential binary replacement and final `3x3` kubelet-proxy validation
 
 [>> Ansible-Repository <<](https://github.com/kCn3333/homelab-ansible)
 
@@ -279,7 +283,7 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) throug
 
 ## Roadmap
 
-- [x] Hubble Relay and Hubble UI — live flows and service maps operational on Cilium `1.19.7`
+- [x] Hubble Relay and Hubble UI — live flows and service maps operational on Cilium `1.20.2`
 - [ ] HashiCorp Vault
 - [ ] External-dns
 - [ ] RBAC
@@ -297,7 +301,7 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) throug
 - [x] Sealed Secrets
 - [x] Traefik dashboard with BasicAuth
 - [x] Monitoring — Prometheus + Grafana
-- [x] Log aggregation — Loki + Promtail
+- [x] Log aggregation — Loki + Grafana Alloy
 - [x] Alerting — AlertManager + ntfy
 - [x] S3 backup — Garage + Longhorn RecurringJob
 - [x] metrics-server — kubectl top + HPA ready
@@ -307,4 +311,3 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) throug
 ## Notes
 
 Actively developed as a learning environment for production DevOps practices. Each component was chosen to reflect real-world tooling used in professional Kubernetes deployments.
-
