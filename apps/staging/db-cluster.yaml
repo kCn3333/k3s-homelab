@@ -4,11 +4,7 @@ metadata:
   name: clients-db-staging
   namespace: clients-staging
 spec:
-  instances: 1
-
-  nodeMaintenanceWindow:
-    inProgress: true
-    reusePVC: true
+  instances: 2
 
   postgresql:
     parameters:
