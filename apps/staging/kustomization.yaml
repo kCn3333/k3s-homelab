@@ -6,4 +6,5 @@ resources:
   - db-secret-sealed.yaml
   - db-cluster.yaml
   - imagepolicy.yaml
+  - networkpolicy-cnpg-internal.yaml
   - networkpolicy-cnpg-operator.yaml
