@@ -4,12 +4,8 @@ metadata:
   name: clients-db
   namespace: clients
 spec:
-  instances: 1
+  instances: 2
 
-  nodeMaintenanceWindow:
-    inProgress: true
-    reusePVC: true
-  
   postgresql:
     parameters:
       max_connections: "100"
