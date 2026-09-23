@@ -9,3 +9,4 @@ resources:
   - alloy
   - metrics-server
   - cloudnative-pg
+  - cert-manager
