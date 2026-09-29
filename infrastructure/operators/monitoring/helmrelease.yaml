@@ -8,7 +8,7 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: "89.2.4"
+      version: "90.2.0"
       sourceRef:
         kind: HelmRepository
         name: prometheus-community
@@ -35,9 +35,10 @@ spec:
       enabled: true
       serviceMonitor:
         https: true
-        insecureSkipVerify: true
         cAdvisor: true
         metricRelabelings: []
+        tlsConfig:
+          insecureSkipVerify: true
     grafana:
       enabled: true
       sidecar:
@@ -132,3 +133,6 @@ spec:
           limits:
             cpu: 1000m
             memory: 2048Mi
+      serviceAccount:
+        create: true
+        createTokenSecret: true
