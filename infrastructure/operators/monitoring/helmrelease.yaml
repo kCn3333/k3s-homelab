@@ -24,6 +24,9 @@ spec:
       retries: 3
 
   values:
+    crds:
+      upgradeJob:
+        enabled: true
     kubeControllerManager:
       enabled: false
     kubeScheduler:
