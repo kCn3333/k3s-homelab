@@ -73,6 +73,9 @@ spec:
           memory: 1280Mi
       env:
         GOMEMLIMIT: 900MiB
+      grafana.ini:
+        plugins:
+          preinstall_disabled: true
     alertmanager:
       alertmanagerSpec:
         useExistingSecret: true
