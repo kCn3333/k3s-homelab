@@ -6,7 +6,7 @@
 
 ## Overview
 
-This repository is the **single source of truth** for a self-hosted Kubernetes cluster managed entirely through GitOps principles. Every change to the cluster passes through Git — no manual `kubectl apply`, no configuration drift.
+This repository is the **single source of truth** for Kubernetes workloads and in-cluster configuration managed through GitOps. Persistent changes pass through Git, while temporary diagnostic resources are created only for controlled tests and removed afterwards.
 
 The cluster is intentionally designed to mirror production environments: HA control plane, TLS everywhere, automated certificate management, distributed storage, CNI with eBPF, full observability stack with metrics and logs, complete GitOps pipeline with continuous image delivery, and a PostgreSQL database managed by CloudNativePG.
 
@@ -18,19 +18,19 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | :--- | :--- |
 | Hardware | 3× HP T630 Thin Client |
 | OS | Ubuntu 24.04 LTS |
-| Kubernetes | k3s v1.35.8+k3s1 (embedded etcd, HA) |
+| Kubernetes | k3s v1.36.4+k3s1 (embedded etcd, HA) |
 | CNI | Cilium v1.20.2 (eBPF, VXLAN) |
-| Storage | Longhorn v1.11 (distributed block storage) |
+| Storage | Longhorn v1.12.1 (distributed block storage) |
 | Object Storage | Garage v2.2.0 (self-hosted S3, Debian host) |
-| Database | CloudNativePG (PostgreSQL 17) |
+| Database | CloudNativePG v1.30.0 / chart 0.29.0 (PostgreSQL 17.4) |
 | Ingress | Traefik v3 |
 | Load Balancer | HAProxy (bare-metal) |
-| Certificate Management | cert-manager + Let's Encrypt (DNS-01) |
+| Certificate Management | cert-manager v1.21.2 + Let's Encrypt (DNS-01) |
 | Secrets Management | Sealed Secrets v0.40.0 (Helm chart 2.20.0) |
-| GitOps | Flux v2 |
-| Resource Metrics | metrics-server v0.8.1 (Helm chart 3.13.1) |
-| Metrics | kube-prometheus-stack v82.10.1 (Prometheus + Grafana + AlertManager) |
-| Logs | Loki v3.6 + Grafana Alloy v1.19.2 (stored in Garage S3) |
+| GitOps | Flux v2.9.5 |
+| Resource Metrics | metrics-server v0.9.0 (Helm chart 3.14.0) |
+| Metrics | kube-prometheus-stack 91.8.1 (Prometheus v3.15.0 + Grafana 13.2.2 + Alertmanager v0.34.1) |
+| Logs | Loki v3.7.6 (chart 18.7.6) + Grafana Alloy v1.19.2 (Garage S3) |
 | Network Observability | Hubble Relay v1.20.2 + Hubble UI v0.13.5 |
 | Alerting | AlertManager → ntfy (self-hosted, Cloudflare Tunnel) |
 | DNS | Cloudflare (public) + AdGuard Home (local) |
@@ -113,47 +113,36 @@ Rolling update deployed to cluster
 ```
 k3s-homelab/
 ├── apps/
-│   └── base/                          # Application manifests
-│       ├── kustomization.yaml
-│       ├── clients-api/               # Spring Boot API + PostgreSQL
-│       │   ├── namespace.yaml
-│       │   ├── db-cluster.yaml        # CloudNativePG cluster
-│       │   ├── db-secret-sealed.yaml  # DB credentials (SealedSecret)
-│       │   ├── imagerepository.yaml   # Scans kcn333/clients-api every 1m
-│       │   ├── imagepolicy.yaml       # semver >=1.0.0
-│       │   ├── gitrepository.yaml     # Source: clients-api GitHub repo
-│       │   ├── helmrelease.yaml       # Deploys helm/clients-api chart
-│       │   └── kustomization.yaml
-│       └── nginx/                     # Example app with image automation
-│           ├── imagepolicy.yaml
-│           ├── imagerepository.yaml
-│           ├── kustomization.yaml
-│           ├── namespace.yaml
-│           └── nginx-deploy.yaml
+│   ├── base/                          # Production application resources
+│   │   ├── clients-api/               # HelmRelease, CNPG, policies and image automation
+│   │   ├── k8s-badge/                 # Cluster metrics badge application
+│   │   └── nginx/                     # Example application
+│   ├── dev/                           # Development environment
+│   └── staging/                       # Staging environment and CNPG cluster
 ├── clusters/
 │   └── k3s-homelab/
-│       ├── apps.yaml                  # Flux Kustomization → ./apps/base
-│       ├── infrastructure.yaml        # Flux Kustomization → ./infrastructure
+│       ├── apps.yaml                  # Production applications
+│       ├── apps-dev.yaml              # Development applications
+│       ├── apps-staging.yaml          # Staging applications
+│       ├── infrastructure.yaml        # Infrastructure reconciliation
+│       ├── gitrepository-staging.yaml # Staging branch source
 │       ├── image-update-automation.yaml
-│       └── flux-system/
-│           ├── gotk-components.yaml
-│           ├── gotk-sync.yaml
-│           └── kustomization.yaml
+│       ├── image-update-automation-staging.yaml
+│       └── flux-system/               # Flux v2.9.5 bootstrap manifests
 └── infrastructure/
-    ├── config/                        # Cluster config (non-operator resources)
-    │   ├── kustomization.yaml
-    │   ├── longhorn-config/           # BackupTarget, RecurringJob (daily S3 backup)
-    │   └── traefik-dashboard/         # IngressRoute, Middleware, BasicAuth, TLS
-    └── operators/                     # Helm-managed operators
-        ├── kustomization.yaml
-        ├── cilium/                    # CNI — eBPF, VXLAN mode
+    ├── config/
+    │   ├── longhorn-config/           # BackupTarget and recurring S3 backups
+    │   └── traefik-dashboard/         # Dashboard, middleware and TLS
+    └── operators/
+        ├── alloy/                     # Per-node CRI log collection
+        ├── cert-manager/              # Certificates and CRDs managed by Flux
+        ├── cilium/                    # CNI, Hubble Relay and Hubble UI
         ├── cloudnative-pg/            # PostgreSQL operator
-        ├── alloy/                     # Per-node log collection DaemonSet
-        ├── loki/                      # Log aggregation (Garage S3 backend)
+        ├── loki/                      # Log aggregation and Garage S3 storage
         ├── longhorn/                  # Distributed block storage
-        ├── metrics-server/            # Resource metrics for kubectl top / HPA
-        ├── monitoring/                # Prometheus + Grafana + AlertManager + ntfy
-        └── sealed-secrets/            # Secrets encryption
+        ├── metrics-server/            # Metrics API for kubectl top and HPA
+        ├── monitoring/                # Prometheus, Grafana and Alertmanager
+        └── sealed-secrets/            # Encrypted Kubernetes secrets
 ```
 
 ---
@@ -168,7 +157,7 @@ k3s-homelab/
 **CNI — Cilium (eBPF)**
 - eBPF-based networking — higher performance, lower overhead
 - NetworkPolicy support out of the box
-- VXLAN tunnel mode with kube-proxy for service routing
+- VXLAN tunnel mode; kube-proxy handles host-originated ClusterIP traffic, while Cilium eBPF handles Pod-originated ClusterIP traffic
 - Hubble Relay and Hubble UI for cluster-wide network-flow visibility
 - Hubble UI exposed through Traefik at `hubble.cluster.kcn333.com`
 
@@ -181,14 +170,17 @@ k3s-homelab/
 - Full observability: ServiceMonitor + custom PrometheusRules + Grafana dashboard + Loki logs
 
 **Database — CloudNativePG**
-- PostgreSQL 17 managed by CloudNativePG operator
-- Declarative cluster configuration as CRD
-- Automatic failover and read replicas
+- CloudNativePG `1.30.0` with PostgreSQL `17.4`
+- Two 2-instance clusters: production and staging
+- Asynchronous streaming replication with automatic primary election
+- NetworkPolicies explicitly allow operator management and internal replication on TCP `5432`
 
 **Distributed Storage — Longhorn**
-- Block storage replicated across all 3 nodes
+- Longhorn `1.12.1` with all active volume engines migrated to the matching engine image
+- Block storage replicated across all 3 nodes with two replicas per volume
 - ReadWriteMany (RWX) via built-in NFS share manager
 - Daily automated backups to Garage S3 (retain: 2)
+- SystemBackup and etcd snapshot used as separate recovery checkpoints before storage upgrades
 
 **Object Storage — Garage S3**
 - Self-hosted S3-compatible storage on Debian host
@@ -196,15 +188,16 @@ k3s-homelab/
 - Two buckets: `longhorn-backup` and `loki-logs`
 
 **Monitoring — kube-prometheus-stack**
-- Prometheus with 7-day retention on Longhorn PVC
-- Grafana at `grafana.cluster.kcn333.com` with TLS
+- Chart `91.8.1` with Prometheus `v3.15.0`, Grafana `13.2.2`, Alertmanager `v0.34.1` and Prometheus Operator `v0.94.1`
+- Prometheus with 7-day retention on a Longhorn PVC and declarative CRD upgrade job
+- Grafana at `grafana.cluster.kcn333.com` with TLS, distroless image and read-only root filesystem
 - Prometheus uses `hostNetwork` and is reachable from cluster nodes on TCP `9090` through an Ansible-managed UFW rule
 - The `clients-api` dashboard and Loki datasource are provisioned declaratively from Git
-- node-exporter DaemonSet — CPU, RAM, disk, network per node
+- node-exporter DaemonSet without a CPU limit to avoid artificial CFS throttling
 - Custom PrometheusRules for infrastructure and application-level alerts
 
 **Resource Metrics — metrics-server**
-- Helm chart `3.13.1` with metrics-server `0.8.1`
+- Helm chart `3.14.0` with metrics-server `0.9.0`
 - Provides `metrics.k8s.io` for `kubectl top` and Horizontal Pod Autoscaling
 - Helm operations use a 10-minute timeout and three remediation retries to tolerate slow cluster startup
 
@@ -216,11 +209,12 @@ k3s-homelab/
 - Relay, UI, live flows and service maps were revalidated on Cilium `1.20.2`; `hostNetwork` is not required
 
 **Log Aggregation — Loki + Grafana Alloy**
-- Loki in SingleBinary mode with Garage S3 backend
-- 7-day log retention with automatic compaction
+- Loki `3.7.6` from Helm chart `18.7.6` in monolithic SingleBinary mode
+- Garage S3 backend with 7-day retention and automatic compaction
+- StatefulSet PVC retention explicitly set to `Retain/Retain`
 - Alloy `v1.19.2` DaemonSet collecting local CRI logs from all 3 nodes
 - Per-node positions persisted in `/var/lib/alloy` across Pod and node restarts
-- New Loki streams identified by `collector="alloy"`; Promtail is no longer deployed
+- Streams are identified by `collector="alloy"`; Promtail has been removed
 
 **Alerting — AlertManager + ntfy**
 - AlertManager routes alerts to self-hosted ntfy instance
@@ -229,11 +223,14 @@ k3s-homelab/
 - Noise suppression: InfoInhibitor routed to null receiver
 
 **TLS Everywhere**
+- cert-manager `v1.21.2` and its CRDs are managed declaratively by Flux
 - Wildcard certificate `*.cluster.kcn333.com` via cert-manager
 - Let's Encrypt DNS-01 challenge through Cloudflare API
 - Automatic certificate rotation — 30 days before expiry
 
 **GitOps with Flux v2**
+- Flux distribution and client `v2.9.5`
+- Image Toolkit resources use stable `v1` APIs on production and staging branches
 - Cluster state reconciled every 60 seconds
 - `prune: true` — resources removed from Git are removed from cluster
 - Automated image tag updates committed back to repo by Flux bot
@@ -248,7 +245,8 @@ k3s-homelab/
 **Infrastructure as Code**
 - UFW rules managed via Ansible playbooks
 - NTP synchronization playbook (workers → master chrony)
-- Graceful node shutdown playbook
+- Graceful node shutdown and Wake-on-LAN startup validation
+- Controlled Ubuntu maintenance with full-cluster preflight, `serial: 1`, PDB-respecting drain, conditional reboot and fail-closed recovery checks
 
 ---
 
@@ -270,6 +268,7 @@ k3s-homelab/
 - **Longhorn prepare** — open-iscsi, nfs-common
 - **Power lifecycle** — Wake-on-LAN startup validation and graceful shutdown
 - **Controlled K3s upgrade** — etcd snapshot, SHA-256 verification, sequential binary replacement and final `3x3` kubelet-proxy validation
+- **Controlled Ubuntu maintenance** — cluster health gates, one-node-at-a-time drain, conditional package upgrade/reboot and post-recovery validation
 
 [>> Ansible-Repository <<](https://github.com/kCn3333/homelab-ansible)
 
@@ -311,3 +310,4 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) throug
 ## Notes
 
 Actively developed as a learning environment for production DevOps practices. Each component was chosen to reflect real-world tooling used in professional Kubernetes deployments.
+
