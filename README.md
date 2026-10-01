@@ -22,15 +22,15 @@ The cluster is intentionally designed to mirror production environments: HA cont
 | CNI | Cilium v1.20.2 (eBPF, VXLAN) |
 | Storage | Longhorn v1.12.1 (distributed block storage) |
 | Object Storage | Garage v2.2.0 (self-hosted S3, Debian host) |
-| Database | CloudNativePG v1.30.0 / chart 0.29.0 (PostgreSQL 17.4) |
+| Database | CloudNativePG v1.30.1 / chart 0.29.1 (PostgreSQL 17.11) |
 | Ingress | Traefik v3 |
 | Load Balancer | HAProxy (bare-metal) |
 | Certificate Management | cert-manager v1.21.2 + Let's Encrypt (DNS-01) |
 | Secrets Management | Sealed Secrets v0.40.0 (Helm chart 2.20.0) |
 | GitOps | Flux v2.9.5 |
 | Resource Metrics | metrics-server v0.9.0 (Helm chart 3.14.0) |
-| Metrics | kube-prometheus-stack 91.8.1 (Prometheus v3.15.0 + Grafana 13.2.2 + Alertmanager v0.34.1) |
-| Logs | Loki v3.7.6 (chart 18.7.6) + Grafana Alloy v1.19.2 (Garage S3) |
+| Metrics | kube-prometheus-stack 91.8.2 (Prometheus v3.15.0 + Grafana 13.2.3 + Alertmanager v0.34.1) |
+| Logs | Loki v3.7.8 (chart 18.13.7) + Grafana Alloy v1.20.0 (chart 1.13.0, Garage S3) |
 | Network Observability | Hubble Relay v1.20.2 + Hubble UI v0.13.5 |
 | Alerting | AlertManager → ntfy (self-hosted, Cloudflare Tunnel) |
 | DNS | Cloudflare (public) + AdGuard Home (local) |
@@ -157,7 +157,7 @@ k3s-homelab/
 **CNI — Cilium (eBPF)**
 - eBPF-based networking — higher performance, lower overhead
 - NetworkPolicy support out of the box
-- VXLAN tunnel mode; kube-proxy handles host-originated ClusterIP traffic, while Cilium eBPF handles Pod-originated ClusterIP traffic
+- VXLAN tunnel mode with kube-proxy replacement; Cilium eBPF handles Kubernetes Service translation
 - Hubble Relay and Hubble UI for cluster-wide network-flow visibility
 - Hubble UI exposed through Traefik at `hubble.cluster.kcn333.com`
 
@@ -170,17 +170,20 @@ k3s-homelab/
 - Full observability: ServiceMonitor + custom PrometheusRules + Grafana dashboard + Loki logs
 
 **Database — CloudNativePG**
-- CloudNativePG `1.30.0` with PostgreSQL `17.4`
+- CloudNativePG `1.30.1` from Helm chart `0.29.1`
+- PostgreSQL `17.11` on Debian 12, pinned to an immutable `standard-bookworm` image digest
 - Two 2-instance clusters: production and staging
 - Asynchronous streaming replication with automatic primary election
 - NetworkPolicies explicitly allow operator management and internal replication on TCP `5432`
+- Database image updates are validated on staging before production and preceded by checksum-verified logical dumps
 
 **Distributed Storage — Longhorn**
 - Longhorn `1.12.1` with all active volume engines migrated to the matching engine image
-- Block storage replicated across all 3 nodes with two replicas per volume
+- Block storage with two replicas per volume placed across eligible nodes
 - ReadWriteMany (RWX) via built-in NFS share manager
 - Daily automated backups to Garage S3 (retain: 2)
 - SystemBackup and etcd snapshot used as separate recovery checkpoints before storage upgrades
+- Upgrade to the newly released `1.13.0` is intentionally deferred until the `1.13.x` line matures
 
 **Object Storage — Garage S3**
 - Self-hosted S3-compatible storage on Debian host
@@ -188,7 +191,7 @@ k3s-homelab/
 - Two buckets: `longhorn-backup` and `loki-logs`
 
 **Monitoring — kube-prometheus-stack**
-- Chart `91.8.1` with Prometheus `v3.15.0`, Grafana `13.2.2`, Alertmanager `v0.34.1` and Prometheus Operator `v0.94.1`
+- Chart `91.8.2` with Prometheus `v3.15.0`, Grafana `13.2.3`, Alertmanager `v0.34.1` and Prometheus Operator `v0.94.1`
 - Prometheus with 7-day retention on a Longhorn PVC and declarative CRD upgrade job
 - Grafana at `grafana.cluster.kcn333.com` with TLS, distroless image and read-only root filesystem
 - Prometheus uses `hostNetwork` and is reachable from cluster nodes on TCP `9090` through an Ansible-managed UFW rule
@@ -209,12 +212,13 @@ k3s-homelab/
 - Relay, UI, live flows and service maps were revalidated on Cilium `1.20.2`; `hostNetwork` is not required
 
 **Log Aggregation — Loki + Grafana Alloy**
-- Loki `3.7.6` from Helm chart `18.7.6` in monolithic SingleBinary mode
+- Loki `3.7.8` from Helm chart `18.13.7` in monolithic SingleBinary mode
 - Garage S3 backend with 7-day retention and automatic compaction
-- StatefulSet PVC retention explicitly set to `Retain/Retain`
-- Alloy `v1.19.2` DaemonSet collecting local CRI logs from all 3 nodes
+- StatefulSet PVC auto-deletion disabled; the effective Kubernetes retention policy is `Retain`
+- Alloy `v1.20.0` from Helm chart `1.13.0`, deployed as a DaemonSet on all 3 nodes
 - Per-node positions persisted in `/var/lib/alloy` across Pod and node restarts
 - Streams are identified by `collector="alloy"`; Promtail has been removed
+- End-to-end ingestion is validated after upgrades with LogQL queries against recent Alloy streams
 
 **Alerting — AlertManager + ntfy**
 - AlertManager routes alerts to self-hosted ntfy instance
@@ -257,6 +261,7 @@ k3s-homelab/
 | etcd snapshots | k3s automatic | Daily 12:00 UTC | 5 latest | On cluster |
 | etcd snapshots | rsync | Daily 13:00 UTC | 30 days | Debian host |
 | Longhorn volumes | RecurringJob | Daily 11:00 UTC | 2 latest | Garage S3 |
+| PostgreSQL clusters | `pg_dumpall` + custom-format `pg_dump` | Before database image upgrades | Manual checkpoint | Restricted local storage |
 | Sealed Secrets keys | Encrypted export + SHA-256 | After key rotation | All active keys | Removable off-cluster storage |
 
 ---
@@ -296,6 +301,7 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) throug
 - [x] HPA — Horizontal Pod Autoscaler (min 2 / max 6)
 - [x] Grafana dashboard for application metrics (HTTP, JVM, HikariCP)
 - [x] CloudNativePG — PostgreSQL operator
+- [ ] CloudNativePG scheduled backups to Garage S3 + tested restore procedure
 - [x] Custom AlertManager rules (CPU, Memory, Disk, CrashLoop, Longhorn)
 - [x] Sealed Secrets
 - [x] Traefik dashboard with BasicAuth
@@ -304,10 +310,10 @@ All `*.cluster.kcn333.com` subdomains resolve to `192.168.0.45` (HAProxy) throug
 - [x] Alerting — AlertManager + ntfy
 - [x] S3 backup — Garage + Longhorn RecurringJob
 - [x] metrics-server — kubectl top + HPA ready
+- [ ] Longhorn `1.13.x` evaluation after the first maintenance release and recovery preflight
 
 ---
 
 ## Notes
 
 Actively developed as a learning environment for production DevOps practices. Each component was chosen to reflect real-world tooling used in professional Kubernetes deployments.
-
