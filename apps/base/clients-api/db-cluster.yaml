@@ -5,23 +5,19 @@ metadata:
   namespace: clients
 spec:
   instances: 2
-
   postgresql:
     parameters:
       max_connections: "100"
       shared_buffers: "64MB"
-
   bootstrap:
     initdb:
       database: clients_db
       owner: clients_user
       secret:
         name: clients-db-secret
-
   storage:
     size: 1Gi
     storageClass: longhorn
-
   resources:
     requests:
       cpu: 100m
@@ -29,3 +25,4 @@ spec:
     limits:
       cpu: 500m
       memory: 512Mi
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.11-standard-bookworm@sha256:61207ab4e051645dcb9901e1ec9358b01e4adb45624cb4425be1eab27eac6508
